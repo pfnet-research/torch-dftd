@@ -4,6 +4,10 @@ pytorch implementation of dftd2 [1] & dftd3 [2, 3]
 ## Install
 
 ```bash
+# Install from pypi
+pip install torch-dftd
+
+# Install from source (for developers)
 git clone https://github.com/pfnet-research/torch-dftd
 pip install -e .
 ```
