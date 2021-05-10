@@ -1,0 +1,14 @@
+configs {
+  # Project name.
+  key: "torch-dftd.pytest"
+  value {
+    requirement {
+      cpu: 4
+      memory: 16
+      disk: 10
+      gpu: 1
+    }
+    command:
+        "bash -x .flexci/pytest_script.sh"
+  }
+}
