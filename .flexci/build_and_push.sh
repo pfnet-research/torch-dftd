@@ -3,7 +3,7 @@
 IMAGE_BASE="${1:-}"
 IMAGE_PUSH=1
 if [ "${IMAGE_BASE}" = "" ]; then
-  IMAGE_BASE="torch-dftd3"
+  IMAGE_BASE="torch-dftd"
   IMAGE_PUSH=0
 fi
 
