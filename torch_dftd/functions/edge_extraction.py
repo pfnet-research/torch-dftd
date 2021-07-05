@@ -53,21 +53,14 @@ def calc_neighbor_by_pymatgen(
     struct = Structure(lattice, symbols, positions, coords_are_cartesian=True)
     c_index, n_index, offsets, n_distance = struct.get_neighbor_list(
         r=cutoff,
-        numerical_tol=0,
+        numerical_tol=1e-8,
         exclude_self=True,
     )
     edge_index = torch.tensor(
         np.stack([c_index, n_index], axis=0), dtype=torch.long, device=pos.device
     )
-    edge_distances = torch.tensor(n_distance, dtype=torch.float32, device=pos.device)
-    cell_offsets = torch.tensor(offsets, dtype=torch.long, device=pos.device)
+    S = torch.tensor(offsets, dtype=pos.dtype, device=pos.device)
 
-    # remove distances smaller than a tolerance ~ 0. The small tolerance is
-    # needed to correct for pymatgen's neighbor_list returning self atoms
-    # in a few edge cases.
-    nonzero = torch.where(edge_distances >= 1e-8)[0]
-    edge_index = edge_index[:, nonzero]
-    S = torch.as_tensor(cell_offsets[nonzero], dtype=pos.dtype, device=pos.device)
     return edge_index, S
 
 
