@@ -3,7 +3,7 @@ import torch
 from torch_dftd.functions.edge_extraction import calc_neighbor_by_ase, calc_neighbor_by_pymatgen
 
 
-def test_calc_neighbor_equivariance():
+def test_calc_neighbor_equivalent():
     n_nodes = 5
     pbc = torch.tensor([True, True, True])
     cell = torch.randn((3, 3))
