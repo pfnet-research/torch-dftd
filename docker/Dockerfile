@@ -12,6 +12,10 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
         xz-utils tk-dev libffi-dev liblzma-dev git gfortran && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
+# Env setting
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
 # Install pyenv.
 RUN git clone https://github.com/pyenv/pyenv.git /opt/pyenv
 ENV PYENV_ROOT=/opt/pyenv
