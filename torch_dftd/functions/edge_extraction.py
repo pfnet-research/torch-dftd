@@ -9,7 +9,7 @@ from torch import Tensor
 
 
 def calc_neighbor_by_ase(
-    pos: Tensor, pbc: Tensor, cell: Tensor, cutoff: float
+    pos: Tensor, cell: Tensor, pbc: Tensor, cutoff: float
 ) -> Tuple[Tensor, Tensor]:
     idx_i, idx_j, S = primitive_neighbor_list(
         "ijS",
@@ -108,11 +108,11 @@ def calc_edge_index(
         S = pos.new_zeros((n_edges, 3))
     else:
         if not bidirectional:
-            raise NotImplementedError()
+            raise NotImplementedError("bidirectional=False is not supported")
 
         try:
             edge_index, S = calc_neighbor_by_pymatgen(pos, cell, pbc, cutoff)
-        except Exception:
+        except NotImplementedError:
             # This is slower.
             edge_index, S = calc_neighbor_by_ase(pos, cell, pbc, cutoff)
 
