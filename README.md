@@ -1,6 +1,8 @@
 # torch-dftd
 pytorch implementation of dftd2 [1] & dftd3 [2, 3]
 
+ - Blog: [Open sourcing pytorch implementation of DFTD3](https://tech.preferred.jp/en/blog/oss-pytorch-dftd3/)
+
 ## Install
 
 ```bash
@@ -62,7 +64,8 @@ See [document](https://docs.cupy.dev/en/stable/user_guide/kernel.html) for detai
 
 ## Citation
 
-Please always cite original paper of DFT-D2 [1] or DFT-D3 [2, 3], if you used this software for your publication.
+Please always cite original paper of DFT-D2 [1] or DFT-D3 [2, 3].<br/>
+Also, please cite the paper [4] if you used this software for your publication.
 
 DFT-D2:<br/>
 [1] S. Grimme, J. Comput. Chem, 27 (2006), 1787-1799.
@@ -75,3 +78,16 @@ DOI: [10.1063/1.3382344](https://doi.org/10.1063/1.3382344)
 If BJ-damping is used in DFT-D3:<br/> 
 [3] S. Grimme, S. Ehrlich and L. Goerigk, J. Comput. Chem, 32 (2011), 1456-1465.
 DOI: [10.1002/jcc.21759](https://doi.org/10.1002/jcc.21759)
+
+[4] [PFP: Universal Neural Network Potential for Material Discovery](https://arxiv.org/abs/2106.14583)
+
+```text
+@misc{takamoto2021pfp,
+      title={PFP: Universal Neural Network Potential for Material Discovery}, 
+      author={So Takamoto and Chikashi Shinagawa and Daisuke Motoki and Kosuke Nakago and Wenwen Li and Iori Kurata and Taku Watanabe and Yoshihiro Yayama and Hiroki Iriguchi and Yusuke Asano and Tasuku Onodera and Takafumi Ishii and Takao Kudo and Hideki Ono and Ryohto Sawada and Ryuichiro Ishitani and Marc Ong and Taiki Yamaguchi and Toshiki Kataoka and Akihide Hayashi and Takeshi Ibuka},
+      year={2021},
+      eprint={2106.14583},
+      archivePrefix={arXiv},
+      primaryClass={cond-mat.mtrl-sci}
+}
+```

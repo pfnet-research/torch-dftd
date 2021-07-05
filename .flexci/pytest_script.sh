@@ -6,7 +6,7 @@ IMAGE=asia.gcr.io/pfn-public-ci/torch-dftd-ci:torch15
 
 
 main() {
-  SRC_ROOT="$(cd "$(dirname "${BASH_SOURCE}")/../.."; pwd)"
+  SRC_ROOT="$(cd "$(dirname "${BASH_SOURCE}")/.."; pwd)"
 
   prepare_docker &
   wait
