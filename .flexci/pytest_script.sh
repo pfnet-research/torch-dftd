@@ -12,8 +12,8 @@ main() {
   wait
 
 # Build and push docker images for unit tests.
-  bash -x -c "${SRC_ROOT}/.flexci/build_and_push.sh" \
-      "${IMAGE}"
+#  bash -x -c "${SRC_ROOT}/.flexci/build_and_push.sh" \
+#      "${IMAGE}"
 
 # 1st pytest: when xdist is enabled with `-n $(nproc)`, benchmark is not executed.
 # 2nd pytest: only execute pytest-benchmark.
