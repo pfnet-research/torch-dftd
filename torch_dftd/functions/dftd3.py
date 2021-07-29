@@ -100,7 +100,7 @@ def _getc6(
     else:
         k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20 * torch.ones_like(r)).view(n_edges, n_c6ab)
     r_ratio = torch.softmax(k3_rnc, dim=1)
-    c6 = (r_ratio * cn0.view(n_edges, 25)).sum(dim=1)
+    c6 = (r_ratio * cn0.view(n_edges, n_c6ab)).sum(dim=1)
     return c6
 
 
