@@ -131,7 +131,7 @@ def _calc_triplets_core_gpu(
     if not _cupy_available:
         raise ImportError("Please install cupy to use `_calc_triplets_core_gpu`!")
     device = unique.device
-    n_triplets = torch.sum(counts * (counts - 1) / 2).item()
+    n_triplets = int(torch.sum(counts * (counts - 1) / 2).item())
 
     # (n_triplet_edges, 3)
     triplet_node_index = torch.zeros((n_triplets, 3), dtype=torch.long, device=device)
