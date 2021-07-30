@@ -94,9 +94,13 @@ def _getc6(
     r = (cn1 - nci[:, None, None]) ** 2 + (cn2 - ncj[:, None, None]) ** 2
 
     n_edges = r.shape[0]
-    k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20 * torch.ones_like(r)).view(n_edges, -1)
+    n_c6ab = r.shape[1] * r.shape[2]
+    if cn0.size(0) == 0:
+        k3_rnc = (k3 * r).view(n_edges, n_c6ab)
+    else:
+        k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20 * torch.ones_like(r)).view(n_edges, n_c6ab)
     r_ratio = torch.softmax(k3_rnc, dim=1)
-    c6 = (r_ratio * cn0.view(n_edges, -1)).sum(dim=1)
+    c6 = (r_ratio * cn0.view(n_edges, n_c6ab)).sum(dim=1)
     return c6
 
 

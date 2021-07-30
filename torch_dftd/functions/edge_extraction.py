@@ -102,11 +102,14 @@ def calc_edge_index(
     else:
         if not bidirectional:
             raise NotImplementedError("bidirectional=False is not supported")
-
-        try:
-            edge_index, S = calc_neighbor_by_pymatgen(pos, cell, pbc, cutoff)
-        except NotImplementedError:
-            # This is slower.
-            edge_index, S = calc_neighbor_by_ase(pos, cell, pbc, cutoff)
+        if pos.shape[0] == 0:
+            edge_index = torch.zeros([2, 0], dtype=torch.long, device=pos.device)
+            S = torch.zeros_like(pos)
+        else:
+            try:
+                edge_index, S = calc_neighbor_by_pymatgen(pos, cell, pbc, cutoff)
+            except NotImplementedError:
+                # This is slower.
+                edge_index, S = calc_neighbor_by_ase(pos, cell, pbc, cutoff)
 
     return edge_index, S
