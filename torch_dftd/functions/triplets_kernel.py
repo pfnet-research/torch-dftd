@@ -16,10 +16,13 @@ except ImportError:
 try:
     import pytorch_pfn_extras as ppe
 
-    ppe.cuda.use_torch_mempool_in_cupy()
     _ppe_available = True
 except ImportError:
     _ppe_available = False
+
+
+if _ppe_available and _cupy_available:
+    ppe.cuda.use_torch_mempool_in_cupy()
 
 
 def _torch2cupy(tensor: Tensor) -> cp.ndarray:
