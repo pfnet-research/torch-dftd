@@ -133,7 +133,10 @@ class BaseDFTDModule(nn.Module):
         if batch is None:
             results_list = [{"energy": E_disp.item(), "forces": forces.cpu().numpy()}]
         else:
-            n_graphs = int(batch[-1]) + 1
+            if batch.size()[0] == 0:
+                n_graphs = 1
+            else:
+                n_graphs = int(batch[-1]) + 1
             results_list = [{"energy": E_disp[i].item()} for i in range(n_graphs)]
             for i in range(n_graphs):
                 results_list[i]["forces"] = forces[batch == i].cpu().numpy()
