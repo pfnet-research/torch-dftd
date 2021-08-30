@@ -19,7 +19,9 @@ def _create_atoms() -> List[List[Atoms]]:
 
     slab = fcc111("Au", size=(2, 1, 3), vacuum=80.0)
     slab.pbc = np.array([True, True, True])
-    return [[atoms, slab], []]
+
+    null = Atoms()
+    return [[atoms, slab], [null]]
 
 
 def _assert_energy_equal_batch(calc1, atoms_list: List[Atoms]):

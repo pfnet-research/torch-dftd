@@ -78,7 +78,10 @@ class BaseDFTDModule(nn.Module):
         if batch is None:
             return [{"energy": E_disp.item()}]
         else:
-            n_graphs = int(batch[-1]) + 1
+            if batch.size()[0] == 0:
+                n_graphs = 1
+            else:
+                n_graphs = int(batch[-1]) + 1
             return [{"energy": E_disp[i].item()} for i in range(n_graphs)]
 
     def calc_energy_and_forces(

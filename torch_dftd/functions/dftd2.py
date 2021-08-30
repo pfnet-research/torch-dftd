@@ -72,7 +72,10 @@ def edisp_d2(
         g = e6.sum()[None]
     else:
         # (n_graphs,)
-        n_graphs = int(batch[-1]) + 1
+        if batch.size()[0] == 0:
+            n_graphs = 1
+        else:
+            n_graphs = int(batch[-1]) + 1
         g = e6.new_zeros((n_graphs,))
         g.scatter_add_(0, batch_edge, e6)
 
