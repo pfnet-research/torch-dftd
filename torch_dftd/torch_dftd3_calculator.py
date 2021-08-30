@@ -166,10 +166,8 @@ class TorchDFTD3Calculator(Calculator):
         )
         batch_dicts = dict(
             Z=torch.cat([d["Z"] for d in input_dicts_list], dim=0),  # (n_nodes,)
-            pos=torch.cat([d["pos"] for d in input_dicts_list], dim=0).requires_grad_(
-                True
-            ),  # (n_nodes,)
-            cell=cell_batch.requires_grad_(True),  # (bs, 3, 3)
+            pos=torch.cat([d["pos"] for d in input_dicts_list], dim=0),  # (n_nodes,)
+            cell=cell_batch,  # (bs, 3, 3)
             pbc=torch.stack([d["pbc"] for d in input_dicts_list]),  # (bs, 3)
             shift=torch.cat([d["shift"] for d in input_dicts_list], dim=0),  # (n_nodes,)
         )
