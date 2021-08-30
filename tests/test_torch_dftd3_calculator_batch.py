@@ -13,13 +13,13 @@ from torch_dftd.testing.damping import damping_method_list
 from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
 
 
-def _create_atoms() -> List[Atoms]:
+def _create_atoms() -> List[List[Atoms]]:
     """Initialization"""
     atoms = molecule("CH3CH2OCH3")
 
     slab = fcc111("Au", size=(2, 1, 3), vacuum=80.0)
     slab.pbc = np.array([True, True, True])
-    return [atoms, slab]
+    return [[atoms, slab], []]
 
 
 def _assert_energy_equal_batch(calc1, atoms_list: List[Atoms]):
@@ -77,6 +77,7 @@ def _test_calc_energy_force_stress(
 
 
 @pytest.mark.parametrize("damping,old", damping_method_list)
+@pytest.mark.parametrize("atom_lists", _create_atoms())
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 def test_calc_energy_device_batch(damping, old, device, dtype):
@@ -87,6 +88,7 @@ def test_calc_energy_device_batch(damping, old, device, dtype):
 
 
 @pytest.mark.parametrize("damping,old", damping_method_list)
+@pytest.mark.parametrize("atom_lists", _create_atoms())
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 def test_calc_energy_force_stress_device_batch(damping, old, device, dtype):
@@ -97,6 +99,7 @@ def test_calc_energy_force_stress_device_batch(damping, old, device, dtype):
 
 
 @pytest.mark.parametrize("damping,old", damping_method_list)
+@pytest.mark.parametrize("atom_lists", _create_atoms())
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.parametrize("dtype", [torch.float64])
 def test_calc_energy_force_stress_device_batch_abc(damping, old, device, dtype):
