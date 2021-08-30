@@ -77,36 +77,33 @@ def _test_calc_energy_force_stress(
 
 
 @pytest.mark.parametrize("damping,old", damping_method_list)
-@pytest.mark.parametrize("atom_lists", _create_atoms())
+@pytest.mark.parametrize("atoms_list", _create_atoms())
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_calc_energy_device_batch(damping, old, device, dtype):
+def test_calc_energy_device_batch(damping, old, atoms_list, device, dtype):
     """Test2-1: check device, dtype dependency. with only various damping method."""
     xc = "pbe"
-    atoms_list = _create_atoms()
     _test_calc_energy(damping, xc, old, atoms_list, device=device, dtype=dtype)
 
 
 @pytest.mark.parametrize("damping,old", damping_method_list)
-@pytest.mark.parametrize("atom_lists", _create_atoms())
+@pytest.mark.parametrize("atoms_list", _create_atoms())
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_calc_energy_force_stress_device_batch(damping, old, device, dtype):
+def test_calc_energy_force_stress_device_batch(damping, old, atoms_list, device, dtype):
     """Test2-2: check device, dtype dependency. with only various damping method."""
     xc = "pbe"
-    atoms_list = _create_atoms()
     _test_calc_energy_force_stress(damping, xc, old, atoms_list, device=device, dtype=dtype)
 
 
 @pytest.mark.parametrize("damping,old", damping_method_list)
-@pytest.mark.parametrize("atom_lists", _create_atoms())
+@pytest.mark.parametrize("atoms_list", _create_atoms())
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.parametrize("dtype", [torch.float64])
-def test_calc_energy_force_stress_device_batch_abc(damping, old, device, dtype):
+def test_calc_energy_force_stress_device_batch_abc(damping, old, atoms_list, device, dtype):
     """Test2-3: check device, dtype dependency. with only various damping method."""
     xc = "pbe"
     abc = True
-    atoms_list = _create_atoms()
     _test_calc_energy_force_stress(
         damping, xc, old, atoms_list, device=device, dtype=dtype, abc=abc, cnthr=7.0
     )

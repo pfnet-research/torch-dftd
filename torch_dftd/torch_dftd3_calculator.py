@@ -156,14 +156,17 @@ class TorchDFTD3Calculator(Calculator):
         # pos=pos, Z=Z, cell=cell, pbc=pbc, edge_index=edge_index, shift=S
         n_nodes_list = [d["Z"].shape[0] for d in input_dicts_list]
         shift_index_array = torch.cumsum(torch.tensor([0] + n_nodes_list), dim=0)
-        cell_batch = torch.stack(
-            [
-                torch.eye(3, device=self.device, dtype=self.dtype)
-                if d["cell"] is None
-                else d["cell"]
-                for d in input_dicts_list
-            ]
-        )
+        if len(input_dicts_list) == 0:
+            cell_batch = torch.zeros((0, 3, 3))
+        else:
+            cell_batch = torch.stack(
+                [
+                    torch.eye(3, device=self.device, dtype=self.dtype)
+                    if d["cell"] is None
+                    else d["cell"]
+                    for d in input_dicts_list
+                ]
+            )
         batch_dicts = dict(
             Z=torch.cat([d["Z"] for d in input_dicts_list], dim=0),  # (n_nodes,)
             pos=torch.cat([d["pos"] for d in input_dicts_list], dim=0),  # (n_nodes,)
