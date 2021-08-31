@@ -72,7 +72,15 @@ def _assert_energy_force_stress_equal(calc1, calc2, atoms: Atoms):
 
 
 def _test_calc_energy_force_stress(
-    damping, xc, old, atoms, device="cpu", dtype=torch.float64, bidirectional=True, abc=False, cnthr=15.0
+    damping,
+    xc,
+    old,
+    atoms,
+    device="cpu",
+    dtype=torch.float64,
+    bidirectional=True,
+    abc=False,
+    cnthr=15.0,
 ):
     cutoff = 22.0  # Make test faster
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -204,18 +212,36 @@ def test_calc_energy_force_stress_with_dft():
 @pytest.mark.parametrize("dtype", [torch.float64])
 @pytest.mark.parametrize("bidirectional", [True, False])
 @pytest.mark.parametrize("abc", [True])
-def test_calc_energy_force_stress_device_abc(damping, old, atoms, device, dtype, bidirectional, abc):
+def test_calc_energy_force_stress_device_abc(
+    damping, old, atoms, device, dtype, bidirectional, abc
+):
     """Test: check tri-partite calc with device, dtype dependency."""
     xc = "pbe"
     if np.all(atoms.pbc) and bidirectional == False:
         # TODO: bidirectional=False is not implemented for pbc now.
         with pytest.raises(NotImplementedError):
             _test_calc_energy_force_stress(
-                damping, xc, old, atoms, device=device, dtype=dtype, bidirectional=bidirectional, abc=abc, cnthr=7.0
+                damping,
+                xc,
+                old,
+                atoms,
+                device=device,
+                dtype=dtype,
+                bidirectional=bidirectional,
+                abc=abc,
+                cnthr=7.0,
             )
     else:
         _test_calc_energy_force_stress(
-            damping, xc, old, atoms, device=device, dtype=dtype, bidirectional=bidirectional, abc=abc, cnthr=7.0
+            damping,
+            xc,
+            old,
+            atoms,
+            device=device,
+            dtype=dtype,
+            bidirectional=bidirectional,
+            abc=abc,
+            cnthr=7.0,
         )
 
 

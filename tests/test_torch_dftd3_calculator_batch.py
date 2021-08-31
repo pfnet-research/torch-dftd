@@ -65,7 +65,15 @@ def _assert_energy_force_stress_equal_batch(calc1, atoms_list: List[Atoms]):
 
 
 def _test_calc_energy_force_stress(
-    damping, xc, old, atoms_list, device="cpu", dtype=torch.float64, bidirectional=True, abc=False, cnthr=15.0
+    damping,
+    xc,
+    old,
+    atoms_list,
+    device="cpu",
+    dtype=torch.float64,
+    bidirectional=True,
+    abc=False,
+    cnthr=15.0,
 ):
     cutoff = 22.0  # Make test faster
     torch_dftd3_calc = TorchDFTD3Calculator(
@@ -107,7 +115,9 @@ def test_calc_energy_force_stress_device_batch(damping, old, atoms_list, device,
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
 @pytest.mark.parametrize("bidirectional", [True, False])
 @pytest.mark.parametrize("dtype", [torch.float64])
-def test_calc_energy_force_stress_device_batch_abc(damping, old, atoms_list, device, bidirectional, dtype):
+def test_calc_energy_force_stress_device_batch_abc(
+    damping, old, atoms_list, device, bidirectional, dtype
+):
     """Test2-3: check device, dtype dependency. with only various damping method."""
     xc = "pbe"
     abc = True
@@ -115,11 +125,27 @@ def test_calc_energy_force_stress_device_batch_abc(damping, old, atoms_list, dev
         # TODO: bidirectional=False is not implemented for pbc now.
         with pytest.raises(NotImplementedError):
             _test_calc_energy_force_stress(
-                damping, xc, old, atoms_list, device=device, dtype=dtype, bidirectional=bidirectional, abc=abc, cnthr=7.0
+                damping,
+                xc,
+                old,
+                atoms_list,
+                device=device,
+                dtype=dtype,
+                bidirectional=bidirectional,
+                abc=abc,
+                cnthr=7.0,
             )
     else:
         _test_calc_energy_force_stress(
-            damping, xc, old, atoms_list, device=device, dtype=dtype, bidirectional=bidirectional, abc=abc, cnthr=7.0
+            damping,
+            xc,
+            old,
+            atoms_list,
+            device=device,
+            dtype=dtype,
+            bidirectional=bidirectional,
+            abc=abc,
+            cnthr=7.0,
         )
 
 
