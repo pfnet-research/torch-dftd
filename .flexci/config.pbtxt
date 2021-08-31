@@ -8,6 +8,9 @@ configs {
       disk: 10
       gpu: 1
     }
+    time_limit {
+      seconds: 1800
+    }
     command:
         "bash -x .flexci/pytest_script.sh"
   }
