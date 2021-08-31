@@ -20,8 +20,11 @@ def _create_atoms() -> List[List[Atoms]]:
     slab = fcc111("Au", size=(2, 1, 3), vacuum=80.0)
     slab.pbc = np.array([True, True, True])
 
+    slab_wo_pbc = slab.copy()
+    slab_wo_pbc.pbc = np.array([False, False, False])
+
     null = Atoms()
-    return [[atoms, slab], [null]]
+    return [[atoms, slab], [atoms, slab_wo_pbc], [null]]
 
 
 def _assert_energy_equal_batch(calc1, atoms_list: List[Atoms]):
@@ -62,7 +65,7 @@ def _assert_energy_force_stress_equal_batch(calc1, atoms_list: List[Atoms]):
 
 
 def _test_calc_energy_force_stress(
-    damping, xc, old, atoms_list, device="cpu", dtype=torch.float64, abc=False, cnthr=15.0
+    damping, xc, old, atoms_list, device="cpu", dtype=torch.float64, bidirectional=True, abc=False, cnthr=15.0
 ):
     cutoff = 22.0  # Make test faster
     torch_dftd3_calc = TorchDFTD3Calculator(
@@ -74,6 +77,7 @@ def _test_calc_energy_force_stress(
         cutoff=cutoff,
         cnthr=cnthr,
         abc=abc,
+        bidirectional=bidirectional,
     )
     _assert_energy_force_stress_equal_batch(torch_dftd3_calc, atoms_list)
 
@@ -101,14 +105,22 @@ def test_calc_energy_force_stress_device_batch(damping, old, atoms_list, device,
 @pytest.mark.parametrize("damping,old", damping_method_list)
 @pytest.mark.parametrize("atoms_list", _create_atoms())
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+@pytest.mark.parametrize("bidirectional", [True, False])
 @pytest.mark.parametrize("dtype", [torch.float64])
-def test_calc_energy_force_stress_device_batch_abc(damping, old, atoms_list, device, dtype):
+def test_calc_energy_force_stress_device_batch_abc(damping, old, atoms_list, device, bidirectional, dtype):
     """Test2-3: check device, dtype dependency. with only various damping method."""
     xc = "pbe"
     abc = True
-    _test_calc_energy_force_stress(
-        damping, xc, old, atoms_list, device=device, dtype=dtype, abc=abc, cnthr=7.0
-    )
+    if any([np.all(atoms.pbc) for atoms in atoms_list]) and bidirectional == False:
+        # TODO: bidirectional=False is not implemented for pbc now.
+        with pytest.raises(NotImplementedError):
+            _test_calc_energy_force_stress(
+                damping, xc, old, atoms_list, device=device, dtype=dtype, bidirectional=bidirectional, abc=abc, cnthr=7.0
+            )
+    else:
+        _test_calc_energy_force_stress(
+            damping, xc, old, atoms_list, device=device, dtype=dtype, bidirectional=bidirectional, abc=abc, cnthr=7.0
+        )
 
 
 if __name__ == "__main__":
