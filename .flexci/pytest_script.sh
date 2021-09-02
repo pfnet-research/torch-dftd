@@ -21,7 +21,7 @@ main() {
     ${IMAGE} \
     bash -x -c "pip install flake8 pytest pytest-cov pytest-xdist pytest-benchmark && \
       pip install cupy-cuda102 pytorch-pfn-extras && \
-      pip install -e . && \
+      pip install -e .[develop] && \
       pysen run lint && \
       pytest --cov=torch_dftd -n $(nproc) -m 'not slow' tests &&
       pytest --benchmark-only tests"
