@@ -27,6 +27,7 @@ setup(
     packages=find_packages(),
     setup_requires=setup_requires,
     install_requires=install_requires,
+    extras_require=extras_require,
     include_package_data=True,
     package_data=package_data,
 )
