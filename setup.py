@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import Dict, List
 
 from setuptools import find_packages, setup  # NOQA
 
@@ -7,8 +7,10 @@ setup_requires: List[str] = []
 install_requires: List[str] = [
     "ase>=3.18, <4.0.0",  # Note that we require ase==3.21.1 for pytest.
     "pymatgen",
-    "pysen[lint]==0.9.1",
 ]
+extras_require: Dict[str, List[str]] = {
+    "develop": ["pysen[lint]==0.9.1"],
+}
 
 
 __version__: str
@@ -25,6 +27,7 @@ setup(
     packages=find_packages(),
     setup_requires=setup_requires,
     install_requires=install_requires,
+    extras_require=extras_require,
     include_package_data=True,
     package_data=package_data,
 )
