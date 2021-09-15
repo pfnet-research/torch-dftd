@@ -20,6 +20,9 @@ def _create_atoms() -> List[Atoms]:
     atoms = molecule("CH3CH2OCH3")
 
     slab = fcc111("Au", size=(2, 1, 3), vacuum=80.0)
+    slab.set_cell(
+        slab.get_cell().array @ np.array([[1.0, 0.1, 0.2], [0.05, 1.0, 0.02], [0.03, 0.04, 1.0]])
+    )
     slab.pbc = np.array([True, True, True])
     return [atoms, slab]
 
@@ -58,6 +61,8 @@ def _assert_energy_force_stress_equal(calc1, calc2, atoms: Atoms):
     atoms.calc = calc1
     f1 = atoms.get_forces()
     e1 = atoms.get_potential_energy()
+    if np.all(atoms.pbc == np.array([True, True, True])):
+        s1 = atoms.get_stress()
 
     calc2.reset()
     atoms.calc = calc2
@@ -66,7 +71,6 @@ def _assert_energy_force_stress_equal(calc1, calc2, atoms: Atoms):
     assert np.allclose(e1, e2, atol=1e-4, rtol=1e-4)
     assert np.allclose(f1, f2, atol=1e-5, rtol=1e-5)
     if np.all(atoms.pbc == np.array([True, True, True])):
-        s1 = atoms.get_stress()
         s2 = atoms.get_stress()
         assert np.allclose(s1, s2, atol=1e-5, rtol=1e-5)
 

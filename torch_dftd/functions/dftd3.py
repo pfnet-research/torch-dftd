@@ -283,21 +283,25 @@ def edisp(
             shift_abc = None if shift_abc is None else torch.cat([shift_abc, -shift_abc], dim=0)
         with torch.no_grad():
             # triplet_node_index, triplet_edge_index = calc_triplets_cycle(edge_index_abc, n_atoms, shift=shift_abc)
-            triplet_node_index, multiplicity, triplet_shift, batch_triplets = calc_triplets(
-                edge_index_abc, shift=shift_abc, dtype=pos.dtype, batch_edge=batch_edge_abc
+            triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(
+                edge_index_abc,
+                shift=shift_abc,
+                dtype=pos.dtype,
+                batch_edge=batch_edge_abc,
             )
             batch_triplets = None if batch_edge is None else batch_triplets
 
         # Apply `cnthr` cutoff threshold for r_kj
         idx_j, idx_k = triplet_node_index[:, 1], triplet_node_index[:, 2]
-        ts2 = triplet_shift[:, 2]
+        ts2 = shift_abc[edge_jk[:, 0]] - shift_abc[edge_jk[:, 1]]
         r_jk = calc_distances(pos, torch.stack([idx_j, idx_k], dim=0), cell, ts2, batch_triplets)
         kj_within_cutoff = r_jk <= cnthr
+        del ts2
 
         triplet_node_index = triplet_node_index[kj_within_cutoff]
-        multiplicity, triplet_shift, batch_triplets = (
+        multiplicity, edge_jk, batch_triplets = (
             multiplicity[kj_within_cutoff],
-            triplet_shift[kj_within_cutoff],
+            edge_jk[kj_within_cutoff],
             None if batch_triplets is None else batch_triplets[kj_within_cutoff],
         )
 
@@ -306,7 +310,8 @@ def edisp(
             triplet_node_index[:, 1],
             triplet_node_index[:, 2],
         )
-        ts0, ts1, ts2 = triplet_shift[:, 0], triplet_shift[:, 1], triplet_shift[:, 2]
+        ts0 = -shift_abc[edge_jk[:, 0]]
+        ts1 = -shift_abc[edge_jk[:, 1]]
 
         r_ij = calc_distances(pos, torch.stack([idx_i, idx_j], dim=0), cell, ts0, batch_triplets)
         r_ik = calc_distances(pos, torch.stack([idx_i, idx_k], dim=0), cell, ts1, batch_triplets)

@@ -18,9 +18,7 @@ def test_calc_triplets():
         [1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6], dtype=torch.float32, device=device
     )
     # print("shift", shift.shape)
-    triplet_node_index, multiplicity, triplet_shift, batch_triplets = calc_triplets(
-        edge_index, shift
-    )
+    triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(edge_index, shift)
     # print("triplet_node_index", triplet_node_index.shape, triplet_node_index)
     # print("multiplicity", multiplicity.shape, multiplicity)
     # print("triplet_shift", triplet_shift.shape, triplet_shift)
@@ -38,6 +36,20 @@ def test_calc_triplets():
     )
     assert multiplicity.shape == (n_triplets,)
     assert torch.all(multiplicity.cpu() == torch.ones((n_triplets,), dtype=torch.float32))
+
+    assert torch.allclose(
+        edge_jk.cpu(),
+        torch.tensor([[7, 6], [8, 6], [8, 7], [9, 10], [9, 11], [11, 10]], dtype=torch.long),
+    )
+    # shift for edge `i->j`, `i->k`, `j->k`.
+    triplet_shift = torch.stack(
+        [
+            -shift[edge_jk[:, 0]],
+            -shift[edge_jk[:, 1]],
+            shift[edge_jk[:, 0]] - shift[edge_jk[:, 1]],
+        ],
+        dim=1,
+    )
     assert torch.allclose(
         triplet_shift.cpu()[:, :, 0],
         torch.tensor(
@@ -61,7 +73,7 @@ def test_calc_triplets_noshift():
     edge_index = torch.tensor(
         [[0, 1, 1, 3, 1, 2, 3, 0], [1, 2, 3, 0, 0, 1, 1, 3]], dtype=torch.long, device=device
     )
-    triplet_node_index, multiplicity, triplet_shift, batch_triplets = calc_triplets(
+    triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(
         edge_index, dtype=torch.float64
     )
     # print("triplet_node_index", triplet_node_index.shape, triplet_node_index)
@@ -78,13 +90,7 @@ def test_calc_triplets_noshift():
     assert multiplicity.shape == (n_triplets,)
     assert multiplicity.dtype == torch.float64
     assert torch.all(multiplicity.cpu() == torch.ones((n_triplets,), dtype=torch.float64))
-    assert torch.all(
-        triplet_shift.cpu()
-        == torch.zeros(
-            (n_triplets, 3, 3),
-            dtype=torch.float32,
-        )
-    )
+    assert torch.all(edge_jk.cpu() == torch.tensor([[1, 0], [2, 3]], dtype=torch.long))
     assert torch.all(batch_triplets.cpu() == torch.zeros((n_triplets,), dtype=torch.long))
 
 
@@ -95,7 +101,7 @@ def test_calc_triplets_noshift():
 def test_calc_triplets_no_triplets(edge_index):
     # edge_index = edge_index.to("cuda:0")
     # No triplet exist in this graph. Case1: No edge, Case 2 No triplets in this edge.
-    triplet_node_index, multiplicity, triplet_shift, batch_triplets = calc_triplets(edge_index)
+    triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(edge_index)
     # print("triplet_node_index", triplet_node_index.shape, triplet_node_index)
     # print("multiplicity", multiplicity.shape, multiplicity)
     # print("triplet_shift", triplet_shift.shape, triplet_shift)
@@ -104,7 +110,7 @@ def test_calc_triplets_no_triplets(edge_index):
     # 0 triplets exist.
     assert triplet_node_index.shape == (0, 3)
     assert multiplicity.shape == (0,)
-    assert triplet_shift.shape == (0, 3, 3)
+    assert edge_jk.shape == (0, 2)
     assert batch_triplets.shape == (0,)
 
 

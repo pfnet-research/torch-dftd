@@ -97,14 +97,22 @@ class TorchDFTD3Calculator(Calculator):
         )
         Z = torch.tensor(atoms.get_atomic_numbers(), device=self.device)
         if any(atoms.pbc):
-            cell = torch.tensor(
+            cell: Optional[Tensor] = torch.tensor(
                 atoms.get_cell(), device=self.device, dtype=self.dtype, requires_grad=True
             )
         else:
             cell = None
         pbc = torch.tensor(atoms.pbc, device=self.device)
         edge_index, S = self._calc_edge_index(pos, cell, pbc)
-        input_dicts = dict(pos=pos, Z=Z, cell=cell, pbc=pbc, edge_index=edge_index, shift=S)
+        if cell is None:
+            shift = S
+        else:
+            # shift = S
+            shift = torch.mm(S, cell.detach())
+        shift.requires_grad_(True)
+        input_dicts = dict(
+            pos=pos, Z=Z, cell=cell, pbc=pbc, edge_index=edge_index, shift=shift, shift_int=S
+        )
         return input_dicts
 
     def calculate(self, atoms=None, properties=["energy"], system_changes=all_changes):

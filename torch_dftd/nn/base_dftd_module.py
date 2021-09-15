@@ -53,6 +53,7 @@ class BaseDFTDModule(nn.Module):
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
+        shift_int: Optional[Tensor] = None,
     ) -> List[Dict[str, Any]]:
         """Forward computation of dispersion energy
 
@@ -95,6 +96,7 @@ class BaseDFTDModule(nn.Module):
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
+        shift_int: Optional[Tensor] = None,
     ) -> List[Dict[str, Any]]:
         """Forward computation of dispersion energy, force and stress
 
@@ -116,6 +118,7 @@ class BaseDFTDModule(nn.Module):
             # We need to explicitly include this dependency to calculate cell gradient
             # for stress computation.
             # pos is assumed to be inside "cell", so relative position `rel_pos` lies between 0~1.
+            assert isinstance(shift, Tensor)
             if batch is None:
                 rel_pos = torch.mm(pos, torch.inverse(cell))
                 pos = torch.mm(rel_pos.detach(), cell)
@@ -125,8 +128,13 @@ class BaseDFTDModule(nn.Module):
                 # pos (n_atoms, 1, 3) * cell (n_atoms, 3, 3) -> (n_atoms, 3)
                 pos = torch.bmm(rel_pos[:, None, :].detach(), cell[batch])[:, 0]
 
+            # cell_2 = cell.detach().requires_grad_(True)
+            # shift = torch.mm(shift_int, cell_2)
+            # shift = shift_int
             pos.retain_grad()
             cell.retain_grad()
+            shift.retain_grad()
+            # cell_2.retain_grad()
         E_disp = self.calc_energy_batch(
             Z, pos, edge_index, cell, pbc, shift, batch, batch_edge, damping=damping
         )
@@ -150,13 +158,26 @@ class BaseDFTDModule(nn.Module):
             # Get stress in Voigt notation (xx, yy, zz, yz, xz, xy)
             if batch is None:
                 cell_volume = torch.det(cell).abs()
-                stress = torch.mm(cell.grad, cell.T) / cell_volume
+                cell_grad = torch.mm(torch.inverse(cell.T), torch.mm(pos.T, pos.grad))
+                cell_grad += torch.mm(torch.inverse(cell.T), torch.mm(shift.T, shift.grad))
+                # assert torch.allclose(torch.mm(cell_grad.T, cell), torch.mm(cell_grad, cell.T))
+                # stress = torch.mm(cell.T, cell_grad) / cell_volume
+                stress = torch.mm(cell_grad, cell.T) / cell_volume
                 stress = stress.view(-1)[[0, 4, 8, 5, 2, 1]]
                 results_list[0]["stress"] = stress.detach().cpu().numpy()
             else:
                 cell_volume = torch.det(cell).abs()
+                cell_T = cell.permute(0, 2, 1)
                 # cell (bs, 3, 3)
-                stress = torch.bmm(cell.grad, cell.permute(0, 2, 1)) / cell_volume[:, None, None]
+                edge_grad = shift.new_zeros((n_graphs, 3, 3))
+                edge_grad.scatter_add_(
+                    0,
+                    batch_edge.view(batch_edge.size()[0], 1, 1).expand(batch_edge.size()[0], 3, 3),
+                    shift[:, :, None] * shift.grad[:, None, :],
+                )
+                cell_grad = cell.grad
+                cell_grad += torch.bmm(torch.inverse(cell_T), edge_grad)
+                stress = torch.bmm(cell_grad, cell_T) / cell_volume[:, None, None]
                 stress = stress.view(-1, 9)[:, [0, 4, 8, 5, 2, 1]].detach().cpu().numpy()
                 for i in range(n_graphs):
                     results_list[i]["stress"] = stress[i]
