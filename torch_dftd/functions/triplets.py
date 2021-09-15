@@ -24,8 +24,8 @@ def calc_triplets(
            i.e.: idx_i, idx_j, idx_k = triplet_node_index
         multiplicity (Tensor): (n_triplets,) multiplicity indicates duplication of same triplet pair.
             It only takes 1 in non-pbc, but it takes 2 or 3 in pbc case. dtype is specified in the argument.
-        triplet_shift (Tensor): (n_triplets, 3=(ij, ik, jk), 3=(xyz)) shift for edge `i->j`, `i->k`, `j->k`.
-           i.e.: idx_ij, idx_ik, idx_jk = triplet_shift
+        edge_jk (Tensor): (n_triplet_edges, 2=(j, k)) edge indices for j and k.
+           i.e.: idx_j, idx_k = triplet_shift
         batch_triplets (Tensor): (n_triplets,) batch indices for each triplets.
     """
     dst, src = edge_index
@@ -38,9 +38,12 @@ def calc_triplets(
     dst = dst[sort_inds]
 
     if shift is None:
-        shift = torch.zeros((src.shape[0], 3), dtype=dtype, device=edge_index.device)
+        edge_indices = torch.arange(src.shape[0], dtype=torch.long, device=edge_index.device)
+        # shift = torch.zeros((src.shape[0], 3), dtype=dtype, device=edge_index.device)
     else:
-        shift = shift[is_larger][sort_inds]
+        edge_indices = torch.arange(shift.shape[0], dtype=torch.long, device=edge_index.device)
+        edge_indices = edge_indices[is_larger][sort_inds]
+        # shift = shift[is_larger][sort_inds]
 
     if batch_edge is None:
         batch_edge = torch.zeros(src.shape[0], dtype=torch.long, device=edge_index.device)
@@ -55,15 +58,15 @@ def calc_triplets(
 
     if str(unique.device) == "cpu":
         return _calc_triplets_core(
-            counts, unique, dst, shift, batch_edge, counts_cumsum, dtype=dtype
+            counts, unique, dst, edge_indices, batch_edge, counts_cumsum, dtype=dtype
         )
     else:
         return _calc_triplets_core_gpu(
-            counts, unique, dst, shift, batch_edge, counts_cumsum, dtype=dtype
+            counts, unique, dst, edge_indices, batch_edge, counts_cumsum, dtype=dtype
         )
 
 
-def _calc_triplets_core(counts, unique, dst, shift, batch_edge, counts_cumsum, dtype):
+def _calc_triplets_core(counts, unique, dst, edge_indices, batch_edge, counts_cumsum, dtype):
     device = unique.device
     n_triplets = torch.sum(counts * (counts - 1) / 2)
     if n_triplets == 0:
@@ -71,21 +74,22 @@ def _calc_triplets_core(counts, unique, dst, shift, batch_edge, counts_cumsum, d
         triplet_node_index = torch.zeros((0, 3), dtype=torch.long, device=device)
         # (n_triplet_edges)
         multiplicity = torch.zeros((0,), dtype=dtype, device=device)
-        # (n_triplet_edges, 3=(ij, ik, jk), 3=(xyz) )
-        triplet_shift = torch.zeros((0, 3, 3), dtype=dtype, device=device)
+        # (n_triplet_edges, 2=(j, k))
+        edge_jk = torch.zeros((0, 2), dtype=torch.long, device=device)
         # (n_triplet_edges)
         batch_triplets = torch.zeros((0,), dtype=torch.long, device=device)
-        return triplet_node_index, multiplicity, triplet_shift, batch_triplets
+        return triplet_node_index, multiplicity, edge_jk, batch_triplets
 
     triplet_node_index_list = []  # (n_triplet_edges, 3)
-    shift_list = []  # (n_triplet_edges, 3, 3) represents shift vector
+    edge_jk_list = []  # (n_triplet_edges, 2) represents j and k indices
     multiplicity_list = []  # (n_triplet_edges) represents multiplicity
     batch_triplets_list = []  # (n_triplet_edges) represents batch index for triplets
     for i in range(len(unique)):
         _src = unique[i].item()
         _n_edges = counts[i].item()
         _dst = dst[counts_cumsum[i] : counts_cumsum[i + 1]]
-        _shift = shift[counts_cumsum[i] : counts_cumsum[i + 1]]
+        # _shift = shift[counts_cumsum[i] : counts_cumsum[i + 1]]
+        _offset = counts_cumsum[i].item()
         _batch_index = batch_edge[counts_cumsum[i]].item()
         for j in range(_n_edges - 1):
             for k in range(j + 1, _n_edges):
@@ -101,8 +105,12 @@ def _calc_triplets_core(counts, unique, dst, shift, batch_edge, counts_cumsum, d
                     _j, _k = k, j
 
                 triplet_node_index_list.append([_src, _dst0, _dst1])
-                shift_list.append(
-                    torch.stack([-_shift[_j], -_shift[_k], _shift[_j] - _shift[_k]], dim=0)
+                edge_jk_list.append(
+                    [
+                        _offset + _j,
+                        _offset + _k,
+                    ]
+                    # torch.stack([-_shift[_j], -_shift[_k], _shift[_j] - _shift[_k]], dim=0)
                 )
                 # --- multiplicity ---
                 if _dst0 == _dst1:
@@ -126,7 +134,8 @@ def _calc_triplets_core(counts, unique, dst, shift, batch_edge, counts_cumsum, d
     triplet_node_index = torch.as_tensor(triplet_node_index_list, device=device)
     # (n_triplet_edges)
     multiplicity = torch.as_tensor(multiplicity_list, dtype=dtype, device=device)
+    # (n_triplet_edges, 2=(j, k))
+    edge_jk = edge_indices[torch.tensor(edge_jk_list, dtype=torch.long, device=device)]
     # (n_triplet_edges, 3=(ij, ik, jk), 3=(xyz) )
-    triplet_shift = torch.stack(shift_list, dim=0)
     batch_triplets = torch.as_tensor(batch_triplets_list, dtype=torch.long, device=device)
-    return triplet_node_index, multiplicity, triplet_shift, batch_triplets
+    return triplet_node_index, multiplicity, edge_jk, batch_triplets
