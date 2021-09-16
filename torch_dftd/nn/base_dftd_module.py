@@ -126,13 +126,9 @@ class BaseDFTDModule(nn.Module):
                 # pos (n_atoms, 1, 3) * cell (n_atoms, 3, 3) -> (n_atoms, 3)
                 pos = torch.bmm(rel_pos[:, None, :].detach(), cell[batch])[:, 0]
 
-            # cell_2 = cell.detach().requires_grad_(True)
-            # shift = torch.mm(shift_int, cell_2)
-            # shift = shift_int
             pos.retain_grad()
             cell.retain_grad()
             shift.retain_grad()
-            # cell_2.retain_grad()
         E_disp = self.calc_energy_batch(
             Z, pos, edge_index, cell, pbc, shift, batch, batch_edge, damping=damping
         )
@@ -158,8 +154,6 @@ class BaseDFTDModule(nn.Module):
                 cell_volume = torch.det(cell).abs()
                 cell_grad = torch.mm(torch.inverse(cell.T), torch.mm(pos.T, pos.grad))
                 cell_grad += torch.mm(torch.inverse(cell.T), torch.mm(shift.T, shift.grad))
-                # assert torch.allclose(torch.mm(cell_grad.T, cell), torch.mm(cell_grad, cell.T))
-                # stress = torch.mm(cell.T, cell_grad) / cell_volume
                 stress = torch.mm(cell_grad, cell.T) / cell_volume
                 stress = stress.view(-1)[[0, 4, 8, 5, 2, 1]]
                 results_list[0]["stress"] = stress.detach().cpu().numpy()
