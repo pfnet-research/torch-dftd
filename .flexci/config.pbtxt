@@ -3,8 +3,8 @@ configs {
   key: "torch-dftd.pytest"
   value {
     requirement {
-      cpu: 4
-      memory: 24
+      cpu: 6
+      memory: 36
       disk: 10
       gpu: 1
     }
