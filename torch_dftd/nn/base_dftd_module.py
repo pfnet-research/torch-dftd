@@ -53,7 +53,6 @@ class BaseDFTDModule(nn.Module):
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
-        shift_int: Optional[Tensor] = None,
     ) -> List[Dict[str, Any]]:
         """Forward computation of dispersion energy
 
@@ -96,7 +95,6 @@ class BaseDFTDModule(nn.Module):
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
-        shift_int: Optional[Tensor] = None,
     ) -> List[Dict[str, Any]]:
         """Forward computation of dispersion energy, force and stress
 
