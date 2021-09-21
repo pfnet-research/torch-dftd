@@ -37,8 +37,10 @@ def calc_triplets(
     src = src[sort_inds]
     dst = dst[sort_inds]
 
-    edge_indices = torch.arange(src.shape[0], dtype=torch.long, device=edge_index.device)
-    if shift is not None:
+    if shift is None:
+        edge_indices = torch.arange(src.shape[0], dtype=torch.long, device=edge_index.device)
+    else:
+        edge_indices = torch.arange(shift.shape[0], dtype=torch.long, device=edge_index.device)
         edge_indices = edge_indices[is_larger][sort_inds]
 
     if batch_edge is None:
