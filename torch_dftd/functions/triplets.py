@@ -25,7 +25,7 @@ def calc_triplets(
         multiplicity (Tensor): (n_triplets,) multiplicity indicates duplication of same triplet pair.
             It only takes 1 in non-pbc, but it takes 2 or 3 in pbc case. dtype is specified in the argument.
         edge_jk (Tensor): (n_triplet_edges, 2=(j, k)) edge indices for j and k.
-           i.e.: idx_j, idx_k = triplet_shift
+           i.e.: idx_j, idx_k = edge_jk[:, 0], edge_jk[:, 1]
         batch_triplets (Tensor): (n_triplets,) batch indices for each triplets.
     """
     dst, src = edge_index
@@ -37,13 +37,9 @@ def calc_triplets(
     src = src[sort_inds]
     dst = dst[sort_inds]
 
-    if shift is None:
-        edge_indices = torch.arange(src.shape[0], dtype=torch.long, device=edge_index.device)
-        # shift = torch.zeros((src.shape[0], 3), dtype=dtype, device=edge_index.device)
-    else:
-        edge_indices = torch.arange(shift.shape[0], dtype=torch.long, device=edge_index.device)
+    edge_indices = torch.arange(src.shape[0], dtype=torch.long, device=edge_index.device)
+    if shift is not None:
         edge_indices = edge_indices[is_larger][sort_inds]
-        # shift = shift[is_larger][sort_inds]
 
     if batch_edge is None:
         batch_edge = torch.zeros(src.shape[0], dtype=torch.long, device=edge_index.device)
@@ -88,7 +84,6 @@ def _calc_triplets_core(counts, unique, dst, edge_indices, batch_edge, counts_cu
         _src = unique[i].item()
         _n_edges = counts[i].item()
         _dst = dst[counts_cumsum[i] : counts_cumsum[i + 1]]
-        # _shift = shift[counts_cumsum[i] : counts_cumsum[i + 1]]
         _offset = counts_cumsum[i].item()
         _batch_index = batch_edge[counts_cumsum[i]].item()
         for j in range(_n_edges - 1):
@@ -110,7 +105,6 @@ def _calc_triplets_core(counts, unique, dst, edge_indices, batch_edge, counts_cu
                         _offset + _j,
                         _offset + _k,
                     ]
-                    # torch.stack([-_shift[_j], -_shift[_k], _shift[_j] - _shift[_k]], dim=0)
                 )
                 # --- multiplicity ---
                 if _dst0 == _dst1:

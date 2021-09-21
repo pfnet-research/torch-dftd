@@ -11,6 +11,19 @@ def calc_distances(
     shift: Optional[Tensor] = None,
     eps=1e-20,
 ) -> Tensor:
+    """Distance calculation function.
+
+    Args:
+        pos (Tensor): (n_atoms, 3) atom positions.
+        edge_index (Tensor): (2, n_edges) edge_index for graph.
+        cell (Tensor): cell size, None for non periodic system.
+        shift (Tensor): (n_edges, 3) position shift vectors of edges owing to the periodic boundary. It should be length unit.
+        eps (float): Small float value to avoid NaN in backward when the distance is 0.
+
+    Returns:
+        Dij (Tensor): (n_edges, ) distances of edges
+
+    """
 
     idx_i, idx_j = edge_index
     # calculate interatomic distances

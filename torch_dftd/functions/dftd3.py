@@ -298,10 +298,12 @@ def edisp(
 
         # Apply `cnthr` cutoff threshold for r_kj
         idx_j, idx_k = triplet_node_index[:, 1], triplet_node_index[:, 2]
-        ts2 = None if shift_abc is None else shift_abc[edge_jk[:, 0]] - shift_abc[edge_jk[:, 1]]
-        r_jk = calc_distances(pos, torch.stack([idx_j, idx_k], dim=0), cell, ts2)
+        shift_jk = (
+            None if shift_abc is None else shift_abc[edge_jk[:, 0]] - shift_abc[edge_jk[:, 1]]
+        )
+        r_jk = calc_distances(pos, torch.stack([idx_j, idx_k], dim=0), cell, shift_jk)
         kj_within_cutoff = r_jk <= cnthr
-        del ts2
+        del shift_jk
 
         triplet_node_index = triplet_node_index[kj_within_cutoff]
         multiplicity, edge_jk, batch_triplets = (
@@ -315,11 +317,11 @@ def edisp(
             triplet_node_index[:, 1],
             triplet_node_index[:, 2],
         )
-        ts0 = None if shift_abc is None else -shift_abc[edge_jk[:, 0]]
-        ts1 = None if shift_abc is None else -shift_abc[edge_jk[:, 1]]
+        shift_ij = None if shift_abc is None else -shift_abc[edge_jk[:, 0]]
+        shift_ik = None if shift_abc is None else -shift_abc[edge_jk[:, 1]]
 
-        r_ij = calc_distances(pos, torch.stack([idx_i, idx_j], dim=0), cell, ts0)
-        r_ik = calc_distances(pos, torch.stack([idx_i, idx_k], dim=0), cell, ts1)
+        r_ij = calc_distances(pos, torch.stack([idx_i, idx_j], dim=0), cell, shift_ij)
+        r_ik = calc_distances(pos, torch.stack([idx_i, idx_k], dim=0), cell, shift_ik)
         r_jk = r_jk[kj_within_cutoff]
 
         Zti, Ztj, Ztk = Z[idx_i], Z[idx_j], Z[idx_k]
