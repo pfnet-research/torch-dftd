@@ -35,8 +35,8 @@ def _cupy2torch(array: cp.ndarray) -> Tensor:
 
 if _cupy_available:
     _calc_triplets_core_gpu_kernel = cp.ElementwiseKernel(
-        "raw int64 counts, raw int64 unique, raw int64 dst, raw T shift, raw int64 batch_edge, raw int64 counts_cumsum",
-        "raw int64 triplet_node_index, raw T multiplicity, raw T triplet_shift, raw int64 batch_triplets",
+        "raw int64 counts, raw int64 unique, raw int64 dst, raw int64 edge_indices, raw int64 batch_edge, raw int64 counts_cumsum",
+        "raw int64 triplet_node_index, raw T multiplicity, raw int64 edge_jk, raw int64 batch_triplets",
         """
         long long n_unique = unique.size();
         long long a = 0;
@@ -100,16 +100,9 @@ if _cupy_available:
             }
         }
     
-        // --- triplet_shift ---
-        triplet_shift[9 * i] = -shift[3 * (_offset + b)];
-        triplet_shift[9 * i + 1] = -shift[3 * (_offset + b) + 1];
-        triplet_shift[9 * i + 2] = -shift[3 * (_offset + b) + 2];
-        triplet_shift[9 * i + 3] = -shift[3 * (_offset + c)];
-        triplet_shift[9 * i + 4] = -shift[3 * (_offset + c) + 1];
-        triplet_shift[9 * i + 5] = -shift[3 * (_offset + c) + 2];
-        triplet_shift[9 * i + 6] = shift[3 * (_offset + b)] - shift[3 * (_offset + c)];
-        triplet_shift[9 * i + 7] = shift[3 * (_offset + b) + 1] - shift[3 * (_offset + c) + 1];
-        triplet_shift[9 * i + 8] = shift[3 * (_offset + b) + 2] - shift[3 * (_offset + c) + 2];
+        // --- edge_jk ---
+        edge_jk[2 * i] = edge_indices[_offset + b];
+        edge_jk[2 * i + 1] = edge_indices[_offset + c];
     
         // --- batch_triplets ---
         batch_triplets[i] = _batch_index;
@@ -124,7 +117,7 @@ def _calc_triplets_core_gpu(
     counts: Tensor,
     unique: Tensor,
     dst: Tensor,
-    shift: Tensor,
+    edge_indices: Tensor,
     batch_edge: Tensor,
     counts_cumsum: Tensor,
     dtype: torch.dtype = torch.float32,
@@ -140,26 +133,26 @@ def _calc_triplets_core_gpu(
     triplet_node_index = torch.zeros((n_triplets, 3), dtype=torch.long, device=device)
     # (n_triplet_edges)
     multiplicity = torch.zeros((n_triplets,), dtype=dtype, device=device)
-    # (n_triplet_edges, 3=(ij, ik, jk), 3=(xyz) )
-    triplet_shift = torch.zeros((n_triplets, 3, 3), dtype=dtype, device=device)
+    # (n_triplet_edges, 2=(j, k))
+    edge_jk = torch.zeros((n_triplets, 2), dtype=torch.long, device=device)
     # (n_triplet_edges)
     batch_triplets = torch.zeros((n_triplets,), dtype=torch.long, device=device)
     if n_triplets == 0:
-        return triplet_node_index, multiplicity, triplet_shift, batch_triplets
+        return triplet_node_index, multiplicity, edge_jk, batch_triplets
 
     _calc_triplets_core_gpu_kernel(
         _torch2cupy(counts),
         _torch2cupy(unique),
         _torch2cupy(dst),
-        _torch2cupy(shift),
+        _torch2cupy(edge_indices),
         _torch2cupy(batch_edge),
         _torch2cupy(counts_cumsum),
         # n_triplets,
         _torch2cupy(triplet_node_index),
         _torch2cupy(multiplicity),
-        _torch2cupy(triplet_shift),
+        _torch2cupy(edge_jk),
         _torch2cupy(batch_triplets),
         size=n_triplets,
     )
     # torch tensor buffer is already modified in above cupy functions.
-    return triplet_node_index, multiplicity, triplet_shift, batch_triplets
+    return triplet_node_index, multiplicity, edge_jk, batch_triplets

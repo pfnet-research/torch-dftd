@@ -117,7 +117,7 @@ def edisp(
     cnthr: Optional[float] = None,
     batch: Optional[Tensor] = None,
     batch_edge: Optional[Tensor] = None,
-    shift: Optional[Tensor] = None,
+    shift_pos: Optional[Tensor] = None,
     pos: Optional[Tensor] = None,
     cell: Optional[Tensor] = None,
     r2=None,
@@ -146,7 +146,7 @@ def edisp(
         cnthr (float or None): cutoff distance for coordination number calculation in **bohr**
         batch (Tensor or None): (n_atoms,)
         batch_edge (Tensor or None): (n_edges,)
-        shift (Tensor or None): (n_atoms,) used to calculate 3-body term when abc=True
+        shift_pos (Tensor or None): (n_atoms,) used to calculate 3-body term when abc=True
         pos (Tensor): (n_atoms, 3) position in **bohr**
         cell (Tensor): (3, 3) cell size in **bohr**
         r2 (Tensor or None):
@@ -247,15 +247,15 @@ def edisp(
 
     if batch_edge is None:
         # (1,)
-        g = e68.sum()[None]
+        g = e68.to(torch.float64).sum()[None]
     else:
         # (n_graphs,)
         if batch.size()[0] == 0:
             n_graphs = 1
         else:
             n_graphs = int(batch[-1]) + 1
-        g = e68.new_zeros((n_graphs,))
-        g.scatter_add_(0, batch_edge, e68)
+        g = e68.new_zeros((n_graphs,), dtype=torch.float64)
+        g.scatter_add_(0, batch_edge, e68.to(torch.float64))
 
     if not bidirectional:
         g *= 2.0
@@ -267,7 +267,7 @@ def edisp(
         edge_index_abc = edge_index[:, within_cutoff]
         batch_edge_abc = None if batch_edge is None else batch_edge[within_cutoff]
         # c6_abc = c6[within_cutoff]
-        shift_abc = None if shift is None else shift[within_cutoff]
+        shift_abc = None if shift_pos is None else shift_pos[within_cutoff]
 
         n_atoms = Z.shape[0]
         if not bidirectional:
@@ -283,21 +283,32 @@ def edisp(
             shift_abc = None if shift_abc is None else torch.cat([shift_abc, -shift_abc], dim=0)
         with torch.no_grad():
             # triplet_node_index, triplet_edge_index = calc_triplets_cycle(edge_index_abc, n_atoms, shift=shift_abc)
-            triplet_node_index, multiplicity, triplet_shift, batch_triplets = calc_triplets(
-                edge_index_abc, shift=shift_abc, dtype=pos.dtype, batch_edge=batch_edge_abc
+            # Type hinting
+            triplet_node_index: Tensor
+            multiplicity: Tensor
+            edge_jk: Tensor
+            batch_triplets: Optional[Tensor]
+            triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(
+                edge_index_abc,
+                shift_pos=shift_abc,
+                dtype=pos.dtype,
+                batch_edge=batch_edge_abc,
             )
             batch_triplets = None if batch_edge is None else batch_triplets
 
         # Apply `cnthr` cutoff threshold for r_kj
         idx_j, idx_k = triplet_node_index[:, 1], triplet_node_index[:, 2]
-        ts2 = triplet_shift[:, 2]
-        r_jk = calc_distances(pos, torch.stack([idx_j, idx_k], dim=0), cell, ts2, batch_triplets)
+        shift_jk = (
+            None if shift_abc is None else shift_abc[edge_jk[:, 0]] - shift_abc[edge_jk[:, 1]]
+        )
+        r_jk = calc_distances(pos, torch.stack([idx_j, idx_k], dim=0), cell, shift_jk)
         kj_within_cutoff = r_jk <= cnthr
+        del shift_jk
 
         triplet_node_index = triplet_node_index[kj_within_cutoff]
-        multiplicity, triplet_shift, batch_triplets = (
+        multiplicity, edge_jk, batch_triplets = (
             multiplicity[kj_within_cutoff],
-            triplet_shift[kj_within_cutoff],
+            edge_jk[kj_within_cutoff],
             None if batch_triplets is None else batch_triplets[kj_within_cutoff],
         )
 
@@ -306,10 +317,11 @@ def edisp(
             triplet_node_index[:, 1],
             triplet_node_index[:, 2],
         )
-        ts0, ts1, ts2 = triplet_shift[:, 0], triplet_shift[:, 1], triplet_shift[:, 2]
+        shift_ij = None if shift_abc is None else -shift_abc[edge_jk[:, 0]]
+        shift_ik = None if shift_abc is None else -shift_abc[edge_jk[:, 1]]
 
-        r_ij = calc_distances(pos, torch.stack([idx_i, idx_j], dim=0), cell, ts0, batch_triplets)
-        r_ik = calc_distances(pos, torch.stack([idx_i, idx_k], dim=0), cell, ts1, batch_triplets)
+        r_ij = calc_distances(pos, torch.stack([idx_i, idx_j], dim=0), cell, shift_ij)
+        r_ik = calc_distances(pos, torch.stack([idx_i, idx_k], dim=0), cell, shift_ik)
         r_jk = r_jk[kj_within_cutoff]
 
         Zti, Ztj, Ztk = Z[idx_i], Z[idx_j], Z[idx_k]
@@ -340,11 +352,8 @@ def edisp(
         # ---------------------------------------------------------------
         # TODO: support cutoff_smoothing
         if batch_edge is None:
-            e6abc = e3.sum()
+            e6abc = e3.to(torch.float64).sum()
             g += e6abc
-            # print("g", g)
-            # print("e6abc", e6abc)
         else:
-            g.scatter_add_(0, batch_triplets, e3)
-            # print("g", g)
+            g.scatter_add_(0, batch_triplets, e3.to(torch.float64))
     return g  # (n_graphs,)

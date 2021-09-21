@@ -58,7 +58,7 @@ class TorchDFTD3Calculator(Calculator):
         self.old = old
         self.device = torch.device(device)
         if old:
-            self.dftd_module = DFTD2Module(
+            self.dftd_module: torch.nn.Module = DFTD2Module(
                 self.params,
                 cutoff=cutoff,
                 dtype=dtype,
@@ -92,19 +92,23 @@ class TorchDFTD3Calculator(Calculator):
         )
 
     def _preprocess_atoms(self, atoms: Atoms) -> Dict[str, Optional[Tensor]]:
-        pos = torch.tensor(
-            atoms.get_positions(), device=self.device, dtype=self.dtype, requires_grad=True
-        )
+        pos = torch.tensor(atoms.get_positions(), device=self.device, dtype=self.dtype)
         Z = torch.tensor(atoms.get_atomic_numbers(), device=self.device)
         if any(atoms.pbc):
-            cell = torch.tensor(
-                atoms.get_cell(), device=self.device, dtype=self.dtype, requires_grad=True
+            cell: Optional[Tensor] = torch.tensor(
+                atoms.get_cell(), device=self.device, dtype=self.dtype
             )
         else:
             cell = None
         pbc = torch.tensor(atoms.pbc, device=self.device)
         edge_index, S = self._calc_edge_index(pos, cell, pbc)
-        input_dicts = dict(pos=pos, Z=Z, cell=cell, pbc=pbc, edge_index=edge_index, shift=S)
+        if cell is None:
+            shift_pos = S
+        else:
+            shift_pos = torch.mm(S, cell.detach())
+        input_dicts = dict(
+            pos=pos, Z=Z, cell=cell, pbc=pbc, edge_index=edge_index, shift_pos=shift_pos
+        )
         return input_dicts
 
     def calculate(self, atoms=None, properties=["energy"], system_changes=all_changes):
@@ -153,7 +157,6 @@ class TorchDFTD3Calculator(Calculator):
         # Calculator.calculate(self, atoms, properties, system_changes)
         input_dicts_list = [self._preprocess_atoms(atoms) for atoms in atoms_list]
         # --- Make batch ---
-        # pos=pos, Z=Z, cell=cell, pbc=pbc, edge_index=edge_index, shift=S
         n_nodes_list = [d["Z"].shape[0] for d in input_dicts_list]
         shift_index_array = torch.cumsum(torch.tensor([0] + n_nodes_list), dim=0)
         cell_batch = torch.stack(
@@ -166,12 +169,10 @@ class TorchDFTD3Calculator(Calculator):
         )
         batch_dicts = dict(
             Z=torch.cat([d["Z"] for d in input_dicts_list], dim=0),  # (n_nodes,)
-            pos=torch.cat([d["pos"] for d in input_dicts_list], dim=0).requires_grad_(
-                True
-            ),  # (n_nodes,)
-            cell=cell_batch.requires_grad_(True),  # (bs, 3, 3)
+            pos=torch.cat([d["pos"] for d in input_dicts_list], dim=0),  # (n_nodes,)
+            cell=cell_batch,  # (bs, 3, 3)
             pbc=torch.stack([d["pbc"] for d in input_dicts_list]),  # (bs, 3)
-            shift=torch.cat([d["shift"] for d in input_dicts_list], dim=0),  # (n_nodes,)
+            shift_pos=torch.cat([d["shift_pos"] for d in input_dicts_list], dim=0),  # (n_nodes,)
         )
 
         batch_dicts["edge_index"] = torch.cat(
