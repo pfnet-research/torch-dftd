@@ -7,7 +7,7 @@ from torch_dftd.functions.triplets_kernel import _calc_triplets_core_gpu
 
 def calc_triplets(
     edge_index: Tensor,
-    shift: Optional[Tensor] = None,
+    shift_pos: Optional[Tensor] = None,
     dtype=torch.float32,
     batch_edge: Optional[Tensor] = None,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
@@ -15,7 +15,7 @@ def calc_triplets(
 
     Args:
         edge_index (Tensor): (2, n_edges) edge_index for graph. It must be bidirectional edge.
-        shift (Tensor or None): (n_edges, 3) used to calculate unique atoms when pbc=True.
+        shift_pos (Tensor or None): (n_edges, 3) used to calculate unique atoms when pbc=True.
         dtype: dtype for `multiplicity`
         batch_edge (Tensor or None): Specify batch indices for `edge_index`.
 
@@ -37,10 +37,10 @@ def calc_triplets(
     src = src[sort_inds]
     dst = dst[sort_inds]
 
-    if shift is None:
+    if shift_pos is None:
         edge_indices = torch.arange(src.shape[0], dtype=torch.long, device=edge_index.device)
     else:
-        edge_indices = torch.arange(shift.shape[0], dtype=torch.long, device=edge_index.device)
+        edge_indices = torch.arange(shift_pos.shape[0], dtype=torch.long, device=edge_index.device)
         edge_indices = edge_indices[is_larger][sort_inds]
 
     if batch_edge is None:

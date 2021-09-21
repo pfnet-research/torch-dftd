@@ -13,12 +13,14 @@ def test_calc_triplets():
         dtype=torch.long,
         device=device,
     )
-    shift = torch.zeros((edge_index.shape[1], 3), dtype=torch.float32, device=device)
-    shift[:, 0] = torch.tensor(
+    shift_pos = torch.zeros((edge_index.shape[1], 3), dtype=torch.float32, device=device)
+    shift_pos[:, 0] = torch.tensor(
         [1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6], dtype=torch.float32, device=device
     )
     # print("shift", shift.shape)
-    triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(edge_index, shift)
+    triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(
+        edge_index, shift_pos
+    )
     # print("triplet_node_index", triplet_node_index.shape, triplet_node_index)
     # print("multiplicity", multiplicity.shape, multiplicity)
     # print("triplet_shift", triplet_shift.shape, triplet_shift)
@@ -44,9 +46,9 @@ def test_calc_triplets():
     # shift for edge `i->j`, `i->k`, `j->k`.
     triplet_shift = torch.stack(
         [
-            -shift[edge_jk[:, 0]],
-            -shift[edge_jk[:, 1]],
-            shift[edge_jk[:, 0]] - shift[edge_jk[:, 1]],
+            -shift_pos[edge_jk[:, 0]],
+            -shift_pos[edge_jk[:, 1]],
+            shift_pos[edge_jk[:, 0]] - shift_pos[edge_jk[:, 1]],
         ],
         dim=1,
     )

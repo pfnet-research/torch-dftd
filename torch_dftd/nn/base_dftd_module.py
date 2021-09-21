@@ -17,7 +17,7 @@ class BaseDFTDModule(nn.Module):
         edge_index: Tensor,
         cell: Optional[Tensor] = None,
         pbc: Optional[Tensor] = None,
-        shift: Optional[Tensor] = None,
+        shift_pos: Optional[Tensor] = None,
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
@@ -32,7 +32,7 @@ class BaseDFTDModule(nn.Module):
             edge_index (Tensor): (2, n_edges) edge index within cutoff
             cell (Tensor): (n_atoms, 3) cell size in angstrom, None for non periodic system.
             pbc (Tensor): (bs, 3) pbc condition, None for non periodic system.
-            shift (Tensor): (n_atoms, 3) shift vector
+            shift_pos (Tensor): (n_atoms, 3) shift vector (length unit).
             batch (Tensor): (n_atoms,) Specify which graph this atom belongs to
             batch_edge (Tensor): (n_edges, 3) Specify which graph this edge belongs to
             damping (str):
@@ -49,7 +49,7 @@ class BaseDFTDModule(nn.Module):
         edge_index: Tensor,
         cell: Optional[Tensor] = None,
         pbc: Optional[Tensor] = None,
-        shift: Optional[Tensor] = None,
+        shift_pos: Optional[Tensor] = None,
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
@@ -64,6 +64,7 @@ class BaseDFTDModule(nn.Module):
             edge_index (Tensor):
             cell (Tensor): cell size in angstrom, None for non periodic system.
             pbc (Tensor): pbc condition, None for non periodic system.
+            shift_pos (Tensor):  (n_atoms, 3) shift vector (length unit).
             batch (Tensor):
             batch_edge (Tensor):
             damping (str): damping method. "zero", "bj", "zerom", "bjm"
@@ -73,7 +74,7 @@ class BaseDFTDModule(nn.Module):
         """
         with torch.no_grad():
             E_disp = self.calc_energy_batch(
-                Z, pos, edge_index, cell, pbc, shift, batch, batch_edge, damping=damping
+                Z, pos, edge_index, cell, pbc, shift_pos, batch, batch_edge, damping=damping
             )
         if batch is None:
             return [{"energy": E_disp.item()}]
@@ -91,7 +92,7 @@ class BaseDFTDModule(nn.Module):
         edge_index: Tensor,
         cell: Optional[Tensor] = None,
         pbc: Optional[Tensor] = None,
-        shift: Optional[Tensor] = None,
+        shift_pos: Optional[Tensor] = None,
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
@@ -103,6 +104,7 @@ class BaseDFTDModule(nn.Module):
             pos (Tensor): atom positions in angstrom
             cell (Tensor): cell size in angstrom, None for non periodic system.
             pbc (Tensor): pbc condition, None for non periodic system.
+            shift_pos (Tensor):  (n_atoms, 3) shift vector (length unit).
             damping (str): damping method. "zero", "bj", "zerom", "bjm"
 
         Returns:
@@ -117,11 +119,11 @@ class BaseDFTDModule(nn.Module):
             # We need to explicitly include this dependency to calculate cell gradient
             # for stress computation.
             # pos is assumed to be inside "cell", so relative position `rel_pos` lies between 0~1.
-            assert isinstance(shift, Tensor)
-            shift.requires_grad_(True)
+            assert isinstance(shift_pos, Tensor)
+            shift_pos.requires_grad_(True)
 
         E_disp = self.calc_energy_batch(
-            Z, pos, edge_index, cell, pbc, shift, batch, batch_edge, damping=damping
+            Z, pos, edge_index, cell, pbc, shift_pos, batch, batch_edge, damping=damping
         )
 
         E_disp.sum().backward()
@@ -140,7 +142,7 @@ class BaseDFTDModule(nn.Module):
         if cell is not None:
             # stress = torch.mm(cell_grad, cell.T) / cell_volume
             # Get stress in Voigt notation (xx, yy, zz, yz, xz, xy)
-            assert isinstance(shift, Tensor)
+            assert isinstance(shift_pos, Tensor)
             voigt_left = [0, 1, 2, 1, 2, 0]
             voigt_right = [0, 1, 2, 2, 0, 1]
             if batch is None:
@@ -149,7 +151,8 @@ class BaseDFTDModule(nn.Module):
                     (pos[:, voigt_left] * pos.grad[:, voigt_right]).to(torch.float64), dim=0
                 )
                 cell_grad += torch.sum(
-                    (shift[:, voigt_left] * shift.grad[:, voigt_right]).to(torch.float64), dim=0
+                    (shift_pos[:, voigt_left] * shift_pos.grad[:, voigt_right]).to(torch.float64),
+                    dim=0,
                 )
                 stress = cell_grad.to(cell.dtype) / cell_volume
                 results_list[0]["stress"] = stress.detach().cpu().numpy()
@@ -166,7 +169,7 @@ class BaseDFTDModule(nn.Module):
                 cell_grad.scatter_add_(
                     0,
                     batch_edge.view(batch_edge.size()[0], 1).expand(batch_edge.size()[0], 6),
-                    (shift[:, voigt_left] * shift.grad[:, voigt_right]).to(torch.float64),
+                    (shift_pos[:, voigt_left] * shift_pos.grad[:, voigt_right]).to(torch.float64),
                 )
                 stress = cell_grad.to(cell.dtype) / cell_volume[:, None]
                 stress = stress.detach().cpu().numpy()

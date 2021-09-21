@@ -70,19 +70,19 @@ class DFTD3Module(BaseDFTDModule):
         edge_index: Tensor,
         cell: Optional[Tensor] = None,
         pbc: Optional[Tensor] = None,
-        shift: Optional[Tensor] = None,
+        shift_pos: Optional[Tensor] = None,
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
     ) -> Tensor:
         """Forward computation to calculate atomic wise dispersion energy"""
-        shift = pos.new_zeros((edge_index.size()[1], 3, 3)) if shift is None else shift
+        shift_pos = pos.new_zeros((edge_index.size()[1], 3, 3)) if shift_pos is None else shift_pos
         pos_bohr = pos / d3_autoang  # angstrom -> bohr
         if cell is None:
             cell_bohr: Optional[Tensor] = None
         else:
             cell_bohr = cell / d3_autoang  # angstrom -> bohr
-        shift_bohr = shift / d3_autoang  # angstrom -> bohr
+        shift_bohr = shift_pos / d3_autoang  # angstrom -> bohr
         r = calc_distances(pos_bohr, edge_index, cell_bohr, shift_bohr)
         # E_disp (n_graphs,): Energy in eV unit
         E_disp = d3_autoev * edisp(
@@ -98,7 +98,7 @@ class DFTD3Module(BaseDFTDModule):
             cnthr=self.cnthr / Bohr,
             batch=batch,
             batch_edge=batch_edge,
-            shift=shift_bohr,
+            shift_pos=shift_bohr,
             damping=damping,
             cutoff_smoothing=self.cutoff_smoothing,
             bidirectional=self.bidirectional,

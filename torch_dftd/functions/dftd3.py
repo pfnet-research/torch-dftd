@@ -117,7 +117,7 @@ def edisp(
     cnthr: Optional[float] = None,
     batch: Optional[Tensor] = None,
     batch_edge: Optional[Tensor] = None,
-    shift: Optional[Tensor] = None,
+    shift_pos: Optional[Tensor] = None,
     pos: Optional[Tensor] = None,
     cell: Optional[Tensor] = None,
     r2=None,
@@ -146,7 +146,7 @@ def edisp(
         cnthr (float or None): cutoff distance for coordination number calculation in **bohr**
         batch (Tensor or None): (n_atoms,)
         batch_edge (Tensor or None): (n_edges,)
-        shift (Tensor or None): (n_atoms,) used to calculate 3-body term when abc=True
+        shift_pos (Tensor or None): (n_atoms,) used to calculate 3-body term when abc=True
         pos (Tensor): (n_atoms, 3) position in **bohr**
         cell (Tensor): (3, 3) cell size in **bohr**
         r2 (Tensor or None):
@@ -267,7 +267,7 @@ def edisp(
         edge_index_abc = edge_index[:, within_cutoff]
         batch_edge_abc = None if batch_edge is None else batch_edge[within_cutoff]
         # c6_abc = c6[within_cutoff]
-        shift_abc = None if shift is None else shift[within_cutoff]
+        shift_abc = None if shift_pos is None else shift_pos[within_cutoff]
 
         n_atoms = Z.shape[0]
         if not bidirectional:
@@ -290,7 +290,7 @@ def edisp(
             batch_triplets: Optional[Tensor]
             triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(
                 edge_index_abc,
-                shift=shift_abc,
+                shift_pos=shift_abc,
                 dtype=pos.dtype,
                 batch_edge=batch_edge_abc,
             )
