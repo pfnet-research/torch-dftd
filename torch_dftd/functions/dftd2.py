@@ -6,6 +6,7 @@ from torch import Tensor
 from torch_dftd.functions.smoothing import poly_smoothing
 
 
+@torch.jit.script
 def edisp_d2(
     Z: Tensor,
     r: Tensor,
@@ -44,7 +45,7 @@ def edisp_d2(
     r2 = r ** 2
     r6 = r2 ** 3
 
-    idx_i, idx_j = edge_index
+    idx_i, idx_j = edge_index[0], edge_index[1]
     # compute all necessary quantities
     Zi = Z[idx_i]  # (n_edges,)
     Zj = Z[idx_j]
@@ -71,6 +72,7 @@ def edisp_d2(
         # (1,)
         g = e6.sum()[None]
     else:
+        assert batch is not None
         # (n_graphs,)
         if batch.size()[0] == 0:
             n_graphs = 1

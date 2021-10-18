@@ -24,6 +24,11 @@ class DFTD3Module(BaseDFTDModule):
         bidirectional (bool): calculated `edge_index` is bidirectional or not.
     """
 
+    c6ab: Tensor
+    r0ab: Tensor
+    rcov: Tensor
+    r2r4: Tensor
+
     def __init__(
         self,
         params: Dict[str, float],
@@ -74,25 +79,27 @@ class DFTD3Module(BaseDFTDModule):
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
+        autoang: float = d3_autoang,
+        autoev: float = d3_autoev,
     ) -> Tensor:
         """Forward computation to calculate atomic wise dispersion energy"""
         shift_pos = pos.new_zeros((edge_index.size()[1], 3, 3)) if shift_pos is None else shift_pos
-        pos_bohr = pos / d3_autoang  # angstrom -> bohr
+        pos_bohr = pos / autoang  # angstrom -> bohr
         if cell is None:
             cell_bohr: Optional[Tensor] = None
         else:
-            cell_bohr = cell / d3_autoang  # angstrom -> bohr
-        shift_bohr = shift_pos / d3_autoang  # angstrom -> bohr
+            cell_bohr = cell / autoang  # angstrom -> bohr
+        shift_bohr = shift_pos / autoang  # angstrom -> bohr
         r = calc_distances(pos_bohr, edge_index, cell_bohr, shift_bohr)
         # E_disp (n_graphs,): Energy in eV unit
-        E_disp = d3_autoev * edisp(
+        E_disp = autoev * edisp(
             Z,
             r,
             edge_index,
-            c6ab=self.c6ab,  # type:ignore
-            r0ab=self.r0ab,  # type:ignore
-            rcov=self.rcov,  # type:ignore
-            r2r4=self.r2r4,  # type:ignore
+            c6ab=self.c6ab,
+            r0ab=self.r0ab,
+            rcov=self.rcov,
+            r2r4=self.r2r4,
             params=self.params,
             cutoff=self.cutoff / Bohr,
             cnthr=self.cnthr / Bohr,

@@ -113,6 +113,7 @@ else:
     _calc_triplets_core_gpu_kernel = None
 
 
+@torch.jit.unused
 def _calc_triplets_core_gpu(
     counts: Tensor,
     unique: Tensor,
