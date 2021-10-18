@@ -33,9 +33,14 @@ if __name__ == "__main__":
     old_prof_exec_state = torch._C._jit_set_profiling_executor(False)
     old_prof_mode_state = torch._C._jit_set_profiling_mode(False)
     old_num_prof_runs = torch._C._jit_set_num_profiled_runs(num_runs)
-    print("old_prof_exec_state", old_prof_exec_state,
-          "old_prof_mode_state", old_prof_mode_state,
-          "old_num_prof_runs", old_num_prof_runs)
+    print(
+        "old_prof_exec_state",
+        old_prof_exec_state,
+        "old_prof_mode_state",
+        old_prof_mode_state,
+        "old_num_prof_runs",
+        old_num_prof_runs,
+    )
     print("profiled runs: ", torch._C._jit_get_num_profiled_runs())
 
     device = "cpu"

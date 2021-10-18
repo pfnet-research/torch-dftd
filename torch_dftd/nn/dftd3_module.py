@@ -68,6 +68,7 @@ class DFTD3Module(BaseDFTDModule):
         self.bidirectional = bidirectional
         self.cutoff_smoothing = cutoff_smoothing
 
+    @torch.jit.export
     def calc_energy_batch(
         self,
         Z: Tensor,
@@ -101,8 +102,8 @@ class DFTD3Module(BaseDFTDModule):
             rcov=self.rcov,
             r2r4=self.r2r4,
             params=self.params,
-            cutoff=self.cutoff / Bohr,
-            cnthr=self.cnthr / Bohr,
+            cutoff=self.cutoff / autoang,
+            cnthr=self.cnthr / autoang,
             batch=batch,
             batch_edge=batch_edge,
             shift_pos=shift_bohr,

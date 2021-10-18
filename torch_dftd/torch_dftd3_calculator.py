@@ -58,7 +58,7 @@ class TorchDFTD3Calculator(Calculator):
         self.old = old
         self.device = torch.device(device)
         if old:
-            self.dftd_module: torch.nn.Module = DFTD2Module(
+            dftd_module: torch.nn.Module = DFTD2Module(
                 self.params,
                 cutoff=cutoff,
                 dtype=dtype,
@@ -66,7 +66,7 @@ class TorchDFTD3Calculator(Calculator):
                 cutoff_smoothing=cutoff_smoothing,
             )
         else:
-            self.dftd_module = DFTD3Module(
+            dftd_module = DFTD3Module(
                 self.params,
                 cutoff=cutoff,
                 cnthr=cnthr,
@@ -75,7 +75,7 @@ class TorchDFTD3Calculator(Calculator):
                 bidirectional=bidirectional,
                 cutoff_smoothing=cutoff_smoothing,
             )
-        self.dftd_module.to(device)
+        self.dftd_module = torch.jit.script(dftd_module.to(device))
         self.dtype = dtype
         self.cutoff = cutoff
         self.bidirectional = bidirectional

@@ -44,6 +44,7 @@ class DFTD2Module(BaseDFTDModule):
         # atom pair distance (95, 95)
         self.register_buffer("r0ab", r0ab)
 
+    @torch.jit.export
     def calc_energy_batch(
         self,
         Z: Tensor,
@@ -78,7 +79,7 @@ class DFTD2Module(BaseDFTDModule):
             params=self.params,
             damping=damping,
             bidirectional=self.bidirectional,
-            cutoff=self.cutoff / Bohr,
+            cutoff=self.cutoff / autoang,
             batch=batch,
             batch_edge=batch_edge,
             cutoff_smoothing=self.cutoff_smoothing,
