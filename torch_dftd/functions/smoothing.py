@@ -26,8 +26,9 @@ def poly_smoothing(r: Tensor, cutoff: float) -> Tensor:
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from time import perf_counter
+
     device = "cpu"
     n_edges = 10000
     r = torch.rand(n_edges).to(device) * 10.0
@@ -44,9 +45,13 @@ if __name__ == '__main__':
     import numpy as np
 
     time_array = np.array(time_list)
-    print("time:",
-          np.mean(time_array),
-          np.mean(time_array[10:]),
-          np.mean(time_array[50:]),
-          np.mean(time_array[100:]))
-    import IPython; IPython.embed()
+    print(
+        "time:",
+        np.mean(time_array),
+        np.mean(time_array[10:]),
+        np.mean(time_array[50:]),
+        np.mean(time_array[100:]),
+    )
+    import IPython
+
+    IPython.embed()

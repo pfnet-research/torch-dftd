@@ -38,7 +38,7 @@ def calc_distances(
     return Dij
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     num_runs = 50
     torch._C._jit_set_num_profiled_runs(num_runs)
     print("profiled runs: ", torch._C._jit_get_num_profiled_runs())
@@ -47,7 +47,9 @@ if __name__ == '__main__':
     # device = "cpu"
     n_atoms = 1000
     pos = torch.randn(n_atoms, 3, device=device) * n_atoms
-    edge_index = torch.stack([torch.arange(n_atoms), torch.arange(n_atoms - 1, -1, -1)], dim=0).to(device)
+    edge_index = torch.stack([torch.arange(n_atoms), torch.arange(n_atoms - 1, -1, -1)], dim=0).to(
+        device
+    )
     print("edge_index", edge_index.shape)
     calc_distances(pos, edge_index)
     from time import perf_counter
@@ -61,4 +63,6 @@ if __name__ == '__main__':
         e0 = perf_counter()
         time_list.append(e0 - s0)
     print("Time: ", time_list)
-    import IPython; IPython.embed()
+    import IPython
+
+    IPython.embed()

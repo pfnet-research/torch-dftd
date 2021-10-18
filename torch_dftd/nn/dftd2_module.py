@@ -56,7 +56,7 @@ class DFTD2Module(BaseDFTDModule):
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
         autoang: float = d3_autoang,
-        autoev: float = d3_autoev
+        autoev: float = d3_autoev,
     ) -> Tensor:
         """Forward computation to calculate atomic wise dispersion energy"""
         shift_pos = pos.new_zeros((edge_index.size()[1], 3, 3)) if shift_pos is None else shift_pos

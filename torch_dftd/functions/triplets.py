@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 import torch
 from torch import Tensor
@@ -6,8 +6,15 @@ from torch_dftd.functions.triplets_kernel import _calc_triplets_core_gpu
 
 
 @torch.jit.script
-def _calc_triplets_core(counts: Tensor, unique: Tensor, dst: Tensor, edge_indices: Tensor, batch_edge: Tensor, counts_cumsum: Tensor,
-                        dtype: torch.dtype):
+def _calc_triplets_core(
+    counts: Tensor,
+    unique: Tensor,
+    dst: Tensor,
+    edge_indices: Tensor,
+    batch_edge: Tensor,
+    counts_cumsum: Tensor,
+    dtype: torch.dtype,
+):
     device = unique.device
     n_triplets = torch.sum(counts * (counts - 1) / 2)
     if n_triplets == 0:
