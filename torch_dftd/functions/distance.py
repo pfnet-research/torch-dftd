@@ -40,7 +40,13 @@ def calc_distances(
 
 if __name__ == "__main__":
     num_runs = 50
-    torch._C._jit_set_num_profiled_runs(num_runs)
+
+    old_prof_exec_state = torch._C._jit_set_profiling_executor(False)
+    old_prof_mode_state = torch._C._jit_set_profiling_mode(False)
+    old_num_prof_runs = torch._C._jit_set_num_profiled_runs(num_runs)
+    print("old_prof_exec_state", old_prof_exec_state,
+          "old_prof_mode_state", old_prof_mode_state,
+          "old_num_prof_runs", old_num_prof_runs)
     print("profiled runs: ", torch._C._jit_get_num_profiled_runs())
 
     device = "cuda:0"
@@ -59,6 +65,10 @@ if __name__ == "__main__":
         torch.cuda.synchronize()
         s0 = perf_counter()
         calc_distances(pos, edge_index)
+        # if i < 10:
+        #     print(f"----- {i} ------------------------")
+        #     print(torch.jit.last_executed_optimized_graph())
+
         torch.cuda.synchronize()
         e0 = perf_counter()
         time_list.append(e0 - s0)
