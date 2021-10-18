@@ -54,7 +54,7 @@ def _ncoord(
     Zi = Z[idx_i]
     Zj = Z[idx_j]
     rco = rcov[Zi] + rcov[Zj]  # (n_edges,)
-    rr = rco.type(r.dtype) / r
+    rr = rco.to(r.dtype) / r
     damp = 1.0 / (1.0 + torch.exp(-k1 * (rr - 1.0)))
     if cutoff is not None and cutoff_smoothing == "poly":
         damp *= poly_smoothing(r, cutoff)
@@ -86,7 +86,7 @@ def _getc6(
     """
     # gather the relevant entries from the table
     # c6ab (95, 95, 5, 5, 3) --> c6ab_ (n_edges, 5, 5, 3)
-    c6ab_ = c6ab[Zi, Zj].type(nci.dtype)
+    c6ab_ = c6ab[Zi, Zj].to(nci.dtype)
     # calculate c6 coefficients
 
     # cn0, cn1, cn2 (n_edges, 5, 5)
@@ -195,7 +195,7 @@ def edisp(
     ncj = nc[idx_j]
     c6 = _getc6(Zi, Zj, nci, ncj, c6ab=c6ab, k3=k3)  # c6 coefficients
 
-    c8 = 3 * c6 * r2r4[Zi].type(c6.dtype) * r2r4[Zj].type(c6.dtype)  # c8 coefficient
+    c8 = 3 * c6 * r2r4[Zi].to(c6.dtype) * r2r4[Zj].to(c6.dtype)  # c8 coefficient
 
     s6 = params["s6"]
     s8 = params["s18"]
