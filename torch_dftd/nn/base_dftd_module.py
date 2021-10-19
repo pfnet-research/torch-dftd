@@ -161,7 +161,6 @@ class BaseDFTDModule(nn.Module):
                     dim=0,
                 )
                 stress = cell_grad.to(cell.dtype) / cell_volume
-                # results_list[0]["stress"] = stress.detach().cpu().numpy()
             else:
                 assert isinstance(batch, Tensor)
                 assert isinstance(batch_edge, Tensor)
@@ -184,8 +183,7 @@ class BaseDFTDModule(nn.Module):
                     (shift_pos[:, voigt_left] * shift_pos.grad[:, voigt_right]).to(torch.float64),
                 )
                 stress = cell_grad.to(cell.dtype) / cell_volume[:, None]
-                # stress = stress.detach().cpu().numpy()
-                stress = stress.detach().cpu()
+                stress = stress
         else:
             stress = None
         return E_disp, pos_grad, stress
@@ -227,18 +225,19 @@ class BaseDFTDModule(nn.Module):
             Z, pos, edge_index, cell, pbc, shift_pos, batch, batch_edge, damping, autoang, autoev
         )
 
-        forces = pos_grad
+        forces = (-pos_grad).cpu().numpy()
         n_graphs = 0  # Just to declare for torch.jit.script.
         if batch is None:
-            results_list = [{"energy": E_disp.item(), "forces": forces.cpu().numpy()}]
+            results_list = [{"energy": E_disp.item(), "forces": forces}]
         else:
             if batch.size()[0] == 0:
                 n_graphs = 1
             else:
                 n_graphs = int(batch[-1]) + 1
-            results_list = [{"energy": E_disp[i].item()} for i in range(n_graphs)]
+            E_disp_list = E_disp.tolist()
+            results_list = [{"energy": E_disp_list[i]} for i in range(n_graphs)]
             for i in range(n_graphs):
-                results_list[i]["forces"] = forces[batch == i].cpu().numpy()
+                results_list[i]["forces"] = forces[batch == i]
 
         if stress is not None:
             # stress = torch.mm(cell_grad, cell.T) / cell_volume

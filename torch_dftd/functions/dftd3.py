@@ -287,12 +287,6 @@ def edisp(
             # (n_edges, ) -> (n_edges * 2, )
             shift_abc = None if shift_abc is None else torch.cat([shift_abc, -shift_abc], dim=0)
         with torch.no_grad():
-            # triplet_node_index, triplet_edge_index = calc_triplets_cycle(edge_index_abc, n_atoms, shift=shift_abc)
-            # Type hinting
-            # triplet_node_index: Tensor
-            # multiplicity: Tensor
-            # edge_jk: Tensor
-            # batch_triplets: Optional[Tensor]
             assert pos is not None
             triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(
                 edge_index_abc,
@@ -309,7 +303,6 @@ def edisp(
         )
         r_jk = calc_distances(pos, torch.stack([idx_j, idx_k], dim=0), cell, shift_jk)
         kj_within_cutoff = r_jk <= cnthr
-        # del shift_jk
 
         triplet_node_index = triplet_node_index[kj_within_cutoff]
         multiplicity, edge_jk, batch_triplets = (
