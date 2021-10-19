@@ -20,7 +20,7 @@ main() {
   docker run --runtime=nvidia --rm --volume="$(pwd)":/workspace -w /workspace \
     ${IMAGE} \
     bash -x -c "pip install flake8 pytest pytest-cov pytest-xdist pytest-benchmark && \
-      pip install cupy-cuda102 pytorch-pfn-extras!=0.5.0 && \
+      pip install cupy-cuda102 pytorch-pfn-extras<0.5.0 && \
       pip install -e .[develop] && \
       pysen run lint && \
       pytest --cov=torch_dftd -n $(nproc) -m 'not slow' tests &&

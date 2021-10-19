@@ -13,10 +13,10 @@ def _calc_triplets_core(
     edge_indices: Tensor,
     batch_edge: Tensor,
     counts_cumsum: Tensor,
-    dtype: torch.dtype,
-):
+    dtype: torch.dtype = torch.float32,
+) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
     device = unique.device
-    n_triplets = torch.sum(counts * (counts - 1) / 2)
+    n_triplets = int(torch.sum(counts * (counts - 1) / 2))
     if n_triplets == 0:
         # (n_triplet_edges, 3)
         triplet_node_index = torch.zeros((0, 3), dtype=torch.long, device=device)
@@ -35,11 +35,12 @@ def _calc_triplets_core(
 
     unique_list: List[int] = unique.tolist()
     dst_list: List[int] = dst.tolist()
+    counts_list: List[int] = counts.tolist()
     counts_cumsum_list: List[int] = counts_cumsum.tolist()
     batch_edge_list: List[int] = batch_edge.tolist()
     for i in range(len(unique)):
         _src: int = unique_list[i]
-        _n_edges = counts_cumsum_list[i]
+        _n_edges: int = counts_list[i]
         _dst: List[int] = dst_list[counts_cumsum_list[i] : counts_cumsum_list[i + 1]]
         _offset = counts_cumsum_list[i]
         _batch_index = batch_edge_list[counts_cumsum_list[i]]

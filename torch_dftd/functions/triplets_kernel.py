@@ -114,15 +114,15 @@ else:
 
 
 @torch.jit.ignore
-def _calc_triplets_core_gpu(
+def _calc_triplets_core_gpu_run_kernel(
     counts: Tensor,
     unique: Tensor,
     dst: Tensor,
     edge_indices: Tensor,
     batch_edge: Tensor,
     counts_cumsum: Tensor,
-    dtype: torch.dtype = torch.float32,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    dtype: torch.dtype = torch.float32
     if not _ppe_available:
         raise ImportError("Please install pytorch_pfn_extras to use `_calc_triplets_core_gpu`!")
     if not _cupy_available:
@@ -157,3 +157,21 @@ def _calc_triplets_core_gpu(
     )
     # torch tensor buffer is already modified in above cupy functions.
     return triplet_node_index, multiplicity, edge_jk, batch_triplets
+
+
+@torch.jit.script
+def _calc_triplets_core_gpu(
+    counts: Tensor,
+    unique: Tensor,
+    dst: Tensor,
+    edge_indices: Tensor,
+    batch_edge: Tensor,
+    counts_cumsum: Tensor,
+    dtype: torch.dtype = torch.float32,
+) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    # dtype cannot be used inside @torch.jit.ignore function...
+    # https://github.com/pytorch/pytorch/issues/51941
+    triplet_node_index, multiplicity, edge_jk, batch_triplets = _calc_triplets_core_gpu_run_kernel(
+        counts, unique, dst, edge_indices, batch_edge, counts_cumsum
+    )
+    return triplet_node_index, multiplicity.to(dtype), edge_jk, batch_triplets
