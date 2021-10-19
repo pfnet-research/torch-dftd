@@ -38,6 +38,7 @@ class DFTD2Module(BaseDFTDModule):
         self.dtype = dtype
         self.bidirectional = bidirectional
         self.cutoff_smoothing = cutoff_smoothing
+        self._bohr = Bohr  # For torch.jit, `Bohr` must be local variable.
         r0ab, c6ab = get_dftd2_params()
         # atom pair coefficient (87, 87)
         self.register_buffer("c6ab", c6ab)
@@ -79,7 +80,7 @@ class DFTD2Module(BaseDFTDModule):
             params=self.params,
             damping=damping,
             bidirectional=self.bidirectional,
-            cutoff=self.cutoff / autoang,
+            cutoff=self.cutoff / self._bohr,
             batch=batch,
             batch_edge=batch_edge,
             cutoff_smoothing=self.cutoff_smoothing,

@@ -67,6 +67,7 @@ class DFTD3Module(BaseDFTDModule):
         self.dtype = dtype
         self.bidirectional = bidirectional
         self.cutoff_smoothing = cutoff_smoothing
+        self._bohr = Bohr  # For torch.jit, `Bohr` must be local variable.
 
     @torch.jit.export
     def calc_energy_batch(
@@ -102,8 +103,8 @@ class DFTD3Module(BaseDFTDModule):
             rcov=self.rcov,
             r2r4=self.r2r4,
             params=self.params,
-            cutoff=self.cutoff / autoang,
-            cnthr=self.cnthr / autoang,
+            cutoff=self.cutoff / self._bohr,
+            cnthr=self.cnthr / self._bohr,
             batch=batch,
             batch_edge=batch_edge,
             shift_pos=shift_bohr,
