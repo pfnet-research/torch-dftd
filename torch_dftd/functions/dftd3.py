@@ -149,7 +149,7 @@ def edisp(
         cnthr (float or None): cutoff distance for coordination number calculation in **bohr**
         batch (Tensor or None): (n_atoms,)
         batch_edge (Tensor or None): (n_edges,)
-        shift_pos (Tensor or None): (n_atoms,) used to calculate 3-body term when abc=True
+        shift_pos (Tensor or None): (n_edges, 3) used to calculate 3-body term when abc=True
         pos (Tensor): (n_atoms, 3) position in **bohr**
         cell (Tensor): (3, 3) cell size in **bohr**
         r2 (Tensor or None):
