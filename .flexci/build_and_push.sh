@@ -32,10 +32,10 @@ docker_build_and_push() {
 WAIT_PIDS=""
 
 # PyTorch 1.5 + Python 3.6
-docker_build_and_push torch15 \
+docker_build_and_push torch19 \
     --build-arg base_image="nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04" \
-    --build-arg python_version="3.6.12" \
-    --build-arg pip_packages="torch==1.5.* torchvision==0.6.* ${TEST_PIP_PACKAGES}" &
+    --build-arg python_version="3.7.9" \
+    --build-arg pip_packages="torch==1.9.1 ${TEST_PIP_PACKAGES}" &
 WAIT_PIDS="$! ${WAIT_PIDS}"
 
 # Wait until the build complete.

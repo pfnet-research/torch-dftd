@@ -2,12 +2,13 @@ import torch
 from torch import Tensor
 
 
+@torch.jit.script
 def poly_smoothing(r: Tensor, cutoff: float) -> Tensor:
     """Computes a smooth step from 1 to 0 starting at 1 bohr before the cutoff
 
     Args:
         r (Tensor): (n_edges,)
-        cutoff (float): ()
+        cutoff (float): cutoff length
 
     Returns:
         r (Tensor): Smoothed `r`

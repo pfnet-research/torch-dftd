@@ -535,7 +535,7 @@ def get_dftd3_default_params(
         rs6 = 1.1
         s18 = 0.0
         alp = 20.0
-        rs18 = None  # Not used.
+        rs18 = 0.0  # It is DUMMY value. Not used.
         if xc == "b-lyp":
             s6 = 1.2
         elif xc == "b-p":

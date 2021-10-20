@@ -2,7 +2,7 @@
 set -eu
 
 #IMAGE=pytorch/pytorch:1.5.1-cuda10.1-cudnn7-devel
-IMAGE=asia.gcr.io/pfn-public-ci/torch-dftd-ci:torch15
+IMAGE=asia.gcr.io/pfn-public-ci/torch-dftd-ci:torch19
 
 
 main() {
@@ -20,7 +20,7 @@ main() {
   docker run --runtime=nvidia --rm --volume="$(pwd)":/workspace -w /workspace \
     ${IMAGE} \
     bash -x -c "pip install flake8 pytest pytest-cov pytest-xdist pytest-benchmark && \
-      pip install cupy-cuda102 pytorch-pfn-extras!=0.5.0 && \
+      pip install cupy-cuda102 pytorch-pfn-extras==0.4.2 && \
       pip install -e .[develop] && \
       pysen run lint && \
       pytest --cov=torch_dftd -n $(nproc) -m 'not slow' tests &&

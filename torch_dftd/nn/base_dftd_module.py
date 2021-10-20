@@ -1,15 +1,14 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 import torch
-from ase.neighborlist import primitive_neighbor_list
-from ase.units import Bohr
 from torch import Tensor, nn
+from torch_dftd.functions.dftd3 import d3_autoang, d3_autoev
 
 
 class BaseDFTDModule(nn.Module):
     """BaseDFTDModule"""
 
+    @torch.jit.ignore
     def calc_energy_batch(
         self,
         Z: Tensor,
@@ -21,6 +20,8 @@ class BaseDFTDModule(nn.Module):
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
+        autoang: float = d3_autoang,
+        autoev: float = d3_autoev,
     ) -> Tensor:
         """Forward computation to calculate atomic wise dispersion energy.
 
@@ -36,12 +37,15 @@ class BaseDFTDModule(nn.Module):
             batch (Tensor): (n_atoms,) Specify which graph this atom belongs to
             batch_edge (Tensor): (n_edges, 3) Specify which graph this edge belongs to
             damping (str):
+            autoang (float):
+            autoev (float):
 
         Returns:
             energy (Tensor): (n_atoms,)
         """
         raise NotImplementedError()
 
+    @torch.jit.export
     def calc_energy(
         self,
         Z: Tensor,
@@ -53,7 +57,9 @@ class BaseDFTDModule(nn.Module):
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
-    ) -> List[Dict[str, Any]]:
+        autoang: float = d3_autoang,
+        autoev: float = d3_autoev,
+    ) -> List[Dict[str, float]]:
         """Forward computation of dispersion energy
 
         Backward computation is skipped for fast computation of only energy.
@@ -68,24 +74,38 @@ class BaseDFTDModule(nn.Module):
             batch (Tensor):
             batch_edge (Tensor):
             damping (str): damping method. "zero", "bj", "zerom", "bjm"
+            autoang (float):
+            autoev (float):
 
         Returns:
             results_list (list): calculated result. It contains calculate energy in "energy" key.
         """
         with torch.no_grad():
             E_disp = self.calc_energy_batch(
-                Z, pos, edge_index, cell, pbc, shift_pos, batch, batch_edge, damping=damping
+                Z,
+                pos,
+                edge_index,
+                cell,
+                pbc,
+                shift_pos,
+                batch,
+                batch_edge,
+                damping=damping,
+                autoang=autoang,
+                autoev=autoev,
             )
+        E_disp_list: List[float] = E_disp.tolist()
         if batch is None:
-            return [{"energy": E_disp.item()}]
+            return [{"energy": E_disp_list[0]}]
         else:
             if batch.size()[0] == 0:
                 n_graphs = 1
             else:
                 n_graphs = int(batch[-1]) + 1
-            return [{"energy": E_disp[i].item()} for i in range(n_graphs)]
+            return [{"energy": E_disp_list[i]} for i in range(n_graphs)]
 
-    def calc_energy_and_forces(
+    @torch.jit.export
+    def _calc_energy_and_forces_core(
         self,
         Z: Tensor,
         pos: Tensor,
@@ -96,23 +116,9 @@ class BaseDFTDModule(nn.Module):
         batch: Optional[Tensor] = None,
         batch_edge: Optional[Tensor] = None,
         damping: str = "zero",
-    ) -> List[Dict[str, Any]]:
-        """Forward computation of dispersion energy, force and stress
-
-        Args:
-            Z (Tensor): (n_atoms,) atomic numbers.
-            pos (Tensor): atom positions in angstrom
-            cell (Tensor): cell size in angstrom, None for non periodic system.
-            pbc (Tensor): pbc condition, None for non periodic system.
-            shift_pos (Tensor):  (n_atoms, 3) shift vector (length unit).
-            damping (str): damping method. "zero", "bj", "zerom", "bjm"
-
-        Returns:
-            results (list): calculated results. Contains following:
-                "energy": ()
-                "forces": (n_atoms, 3)
-                "stress": (6,)
-        """
+        autoang: float = d3_autoang,
+        autoev: float = d3_autoev,
+    ) -> Tuple[Tensor, Tensor, Optional[Tensor]]:
         pos.requires_grad_(True)
         if cell is not None:
             # pos is depending on `cell` size
@@ -123,21 +129,21 @@ class BaseDFTDModule(nn.Module):
             shift_pos.requires_grad_(True)
 
         E_disp = self.calc_energy_batch(
-            Z, pos, edge_index, cell, pbc, shift_pos, batch, batch_edge, damping=damping
+            Z,
+            pos,
+            edge_index,
+            cell,
+            pbc,
+            shift_pos,
+            batch,
+            batch_edge,
+            damping=damping,
+            autoang=autoang,
+            autoev=autoev,
         )
 
         E_disp.sum().backward()
-        forces = -pos.grad  # [eV/angstrom]
-        if batch is None:
-            results_list = [{"energy": E_disp.item(), "forces": forces.cpu().numpy()}]
-        else:
-            if batch.size()[0] == 0:
-                n_graphs = 1
-            else:
-                n_graphs = int(batch[-1]) + 1
-            results_list = [{"energy": E_disp[i].item()} for i in range(n_graphs)]
-            for i in range(n_graphs):
-                results_list[i]["forces"] = forces[batch == i].cpu().numpy()
+        pos_grad = pos.grad
 
         if cell is not None:
             # stress = torch.mm(cell_grad, cell.T) / cell_volume
@@ -155,9 +161,14 @@ class BaseDFTDModule(nn.Module):
                     dim=0,
                 )
                 stress = cell_grad.to(cell.dtype) / cell_volume
-                results_list[0]["stress"] = stress.detach().cpu().numpy()
             else:
+                assert isinstance(batch, Tensor)
                 assert isinstance(batch_edge, Tensor)
+                if batch.size()[0] == 0:
+                    n_graphs = 1
+                else:
+                    n_graphs = int(batch[-1]) + 1
+
                 # cell (bs, 3, 3)
                 cell_volume = torch.det(cell).abs()
                 cell_grad = pos.new_zeros((n_graphs, 6), dtype=torch.float64)
@@ -172,6 +183,69 @@ class BaseDFTDModule(nn.Module):
                     (shift_pos[:, voigt_left] * shift_pos.grad[:, voigt_right]).to(torch.float64),
                 )
                 stress = cell_grad.to(cell.dtype) / cell_volume[:, None]
+                stress = stress
+        else:
+            stress = None
+        return E_disp, pos_grad, stress
+
+    @torch.jit.ignore
+    def calc_energy_and_forces(
+        self,
+        Z: Tensor,
+        pos: Tensor,
+        edge_index: Tensor,
+        cell: Optional[Tensor] = None,
+        pbc: Optional[Tensor] = None,
+        shift_pos: Optional[Tensor] = None,
+        batch: Optional[Tensor] = None,
+        batch_edge: Optional[Tensor] = None,
+        damping: str = "zero",
+        autoang: float = d3_autoang,
+        autoev: float = d3_autoev,
+    ) -> List[Dict[str, Any]]:
+        """Forward computation of dispersion energy, force and stress
+
+        Args:
+            Z (Tensor): (n_atoms,) atomic numbers.
+            pos (Tensor): atom positions in angstrom
+            cell (Tensor): cell size in angstrom, None for non periodic system.
+            pbc (Tensor): pbc condition, None for non periodic system.
+            shift_pos (Tensor):  (n_atoms, 3) shift vector (length unit).
+            damping (str): damping method. "zero", "bj", "zerom", "bjm"
+            autoang (float):
+            autoev (float):
+
+        Returns:
+            results (list): calculated results. Contains following:
+                "energy": ()
+                "forces": (n_atoms, 3)
+                "stress": (6,)
+        """
+        E_disp, pos_grad, stress = self._calc_energy_and_forces_core(
+            Z, pos, edge_index, cell, pbc, shift_pos, batch, batch_edge, damping, autoang, autoev
+        )
+
+        forces = (-pos_grad).cpu().numpy()
+        n_graphs = 0  # Just to declare for torch.jit.script.
+        if batch is None:
+            results_list = [{"energy": E_disp.item(), "forces": forces}]
+        else:
+            if batch.size()[0] == 0:
+                n_graphs = 1
+            else:
+                n_graphs = int(batch[-1]) + 1
+            E_disp_list = E_disp.tolist()
+            results_list = [{"energy": E_disp_list[i]} for i in range(n_graphs)]
+            batch_array = batch.cpu().numpy()
+            for i in range(n_graphs):
+                results_list[i]["forces"] = forces[batch_array == i]
+
+        if stress is not None:
+            # stress = torch.mm(cell_grad, cell.T) / cell_volume
+            # Get stress in Voigt notation (xx, yy, zz, yz, xz, xy)
+            if batch is None:
+                results_list[0]["stress"] = stress.detach().cpu().numpy()
+            else:
                 stress = stress.detach().cpu().numpy()
                 for i in range(n_graphs):
                     results_list[i]["stress"] = stress[i]

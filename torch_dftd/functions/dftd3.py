@@ -9,8 +9,8 @@ from torch_dftd.functions.triplets import calc_triplets
 
 # conversion factors used in grimme d3 code
 
-d3_autoang = 0.52917726  # for converting distance from bohr to angstrom
-d3_autoev = 27.21138505  # for converting a.u. to eV
+d3_autoang: float = 0.52917726  # for converting distance from bohr to angstrom
+d3_autoev: float = 27.21138505  # for converting a.u. to eV
 
 d3_k1 = 16.000
 d3_k2 = 4 / 3
@@ -18,6 +18,7 @@ d3_k3 = -4.000
 d3_maxc = 5  # maximum number of coordination complexes
 
 
+@torch.jit.script
 def _ncoord(
     Z: Tensor,
     r: Tensor,
@@ -53,7 +54,7 @@ def _ncoord(
     Zi = Z[idx_i]
     Zj = Z[idx_j]
     rco = rcov[Zi] + rcov[Zj]  # (n_edges,)
-    rr = rco.type(r.dtype) / r
+    rr = rco.to(r.dtype) / r
     damp = 1.0 / (1.0 + torch.exp(-k1 * (rr - 1.0)))
     if cutoff is not None and cutoff_smoothing == "poly":
         damp *= poly_smoothing(r, cutoff)
@@ -66,6 +67,7 @@ def _ncoord(
     return g  # (n_atoms,)
 
 
+@torch.jit.script
 def _getc6(
     Zi: Tensor, Zj: Tensor, nci: Tensor, ncj: Tensor, c6ab: Tensor, k3: float = d3_k3
 ) -> Tensor:
@@ -84,7 +86,7 @@ def _getc6(
     """
     # gather the relevant entries from the table
     # c6ab (95, 95, 5, 5, 3) --> c6ab_ (n_edges, 5, 5, 3)
-    c6ab_ = c6ab[Zi, Zj].type(nci.dtype)
+    c6ab_ = c6ab[Zi, Zj].to(nci.dtype)
     # calculate c6 coefficients
 
     # cn0, cn1, cn2 (n_edges, 5, 5)
@@ -104,6 +106,7 @@ def _getc6(
     return c6
 
 
+@torch.jit.script
 def edisp(
     Z: Tensor,
     r: Tensor,
@@ -120,12 +123,12 @@ def edisp(
     shift_pos: Optional[Tensor] = None,
     pos: Optional[Tensor] = None,
     cell: Optional[Tensor] = None,
-    r2=None,
-    r6=None,
-    r8=None,
-    k1=d3_k1,
-    k2=d3_k2,
-    k3=d3_k3,
+    r2: Optional[Tensor] = None,
+    r6: Optional[Tensor] = None,
+    r8: Optional[Tensor] = None,
+    k1: float = d3_k1,
+    k2: float = d3_k2,
+    k3: float = d3_k3,
     cutoff_smoothing: str = "none",
     damping: str = "zero",
     bidirectional: bool = False,
@@ -146,7 +149,7 @@ def edisp(
         cnthr (float or None): cutoff distance for coordination number calculation in **bohr**
         batch (Tensor or None): (n_atoms,)
         batch_edge (Tensor or None): (n_edges,)
-        shift_pos (Tensor or None): (n_atoms,) used to calculate 3-body term when abc=True
+        shift_pos (Tensor or None): (n_edges, 3) used to calculate 3-body term when abc=True
         pos (Tensor): (n_atoms, 3) position in **bohr**
         cell (Tensor): (3, 3) cell size in **bohr**
         r2 (Tensor or None):
@@ -171,7 +174,7 @@ def edisp(
     if r8 is None:
         r8 = r6 * r2
 
-    idx_i, idx_j = edge_index
+    idx_i, idx_j = edge_index[0], edge_index[1]
     # compute all necessary quantities
     Zi = Z[idx_i]  # (n_edges,)
     Zj = Z[idx_j]
@@ -192,7 +195,7 @@ def edisp(
     ncj = nc[idx_j]
     c6 = _getc6(Zi, Zj, nci, ncj, c6ab=c6ab, k3=k3)  # c6 coefficients
 
-    c8 = 3 * c6 * r2r4[Zi].type(c6.dtype) * r2r4[Zj].type(c6.dtype)  # c8 coefficient
+    c8 = 3 * c6 * r2r4[Zi].to(c6.dtype) * r2r4[Zj].to(c6.dtype)  # c8 coefficient
 
     s6 = params["s6"]
     s8 = params["s18"]
@@ -250,6 +253,7 @@ def edisp(
         g = e68.to(torch.float64).sum()[None]
     else:
         # (n_graphs,)
+        assert batch is not None
         if batch.size()[0] == 0:
             n_graphs = 1
         else:
@@ -261,6 +265,7 @@ def edisp(
         g *= 2.0
 
     if abc:
+        assert cnthr is not None
         within_cutoff = r <= cnthr
         # r_abc = r[within_cutoff]
         # r2_abc = r2[within_cutoff]
@@ -282,12 +287,7 @@ def edisp(
             # (n_edges, ) -> (n_edges * 2, )
             shift_abc = None if shift_abc is None else torch.cat([shift_abc, -shift_abc], dim=0)
         with torch.no_grad():
-            # triplet_node_index, triplet_edge_index = calc_triplets_cycle(edge_index_abc, n_atoms, shift=shift_abc)
-            # Type hinting
-            triplet_node_index: Tensor
-            multiplicity: Tensor
-            edge_jk: Tensor
-            batch_triplets: Optional[Tensor]
+            assert pos is not None
             triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(
                 edge_index_abc,
                 shift_pos=shift_abc,
@@ -303,7 +303,6 @@ def edisp(
         )
         r_jk = calc_distances(pos, torch.stack([idx_j, idx_k], dim=0), cell, shift_jk)
         kj_within_cutoff = r_jk <= cnthr
-        del shift_jk
 
         triplet_node_index = triplet_node_index[kj_within_cutoff]
         multiplicity, edge_jk, batch_triplets = (
@@ -355,5 +354,6 @@ def edisp(
             e6abc = e3.to(torch.float64).sum()
             g += e6abc
         else:
+            assert batch_triplets is not None
             g.scatter_add_(0, batch_triplets, e3.to(torch.float64))
     return g  # (n_graphs,)
