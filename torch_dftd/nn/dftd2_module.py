@@ -61,7 +61,7 @@ class DFTD2Module(BaseDFTDModule):
         autoev: float = d3_autoev,
     ) -> Tensor:
         """Forward computation to calculate atomic wise dispersion energy"""
-        shift_pos = pos.new_zeros((edge_index.size()[1], 3, 3)) if shift_pos is None else shift_pos
+        shift_pos = pos.new_zeros((edge_index.size()[1], 3)) if shift_pos is None else shift_pos
         pos_bohr = pos / autoang  # angstrom -> bohr
         if cell is None:
             cell_bohr: Optional[Tensor] = None
