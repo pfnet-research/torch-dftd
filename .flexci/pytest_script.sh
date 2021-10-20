@@ -2,7 +2,7 @@
 set -eu
 
 #IMAGE=pytorch/pytorch:1.5.1-cuda10.1-cudnn7-devel
-IMAGE=asia.gcr.io/pfn-public-ci/torch-dftd-ci:torch15
+IMAGE=asia.gcr.io/pfn-public-ci/torch-dftd-ci:torch19
 
 
 main() {
