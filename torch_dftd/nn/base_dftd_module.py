@@ -236,8 +236,9 @@ class BaseDFTDModule(nn.Module):
                 n_graphs = int(batch[-1]) + 1
             E_disp_list = E_disp.tolist()
             results_list = [{"energy": E_disp_list[i]} for i in range(n_graphs)]
+            batch_array = batch.cpu().numpy()
             for i in range(n_graphs):
-                results_list[i]["forces"] = forces[batch == i]
+                results_list[i]["forces"] = forces[batch_array == i]
 
         if stress is not None:
             # stress = torch.mm(cell_grad, cell.T) / cell_volume
