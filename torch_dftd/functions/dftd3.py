@@ -82,6 +82,17 @@ def _getc6(
     Returns:
         c6 (Tensor): (n_edges,)
     """
+    chunk_size = 3000000
+    c6s = []
+    for chunk_start in range(0, Zi.shape[0], chunk_size):
+        slc = slice(chunk_start, chunk_start+chunk_size)
+        c6s.append(_getc6_impl(Zi[slc], Zj[slc], nci[slc], ncj[slc], c6ab, k3=k3))
+    return torch.cat(c6s, 0)
+
+
+def _getc6_impl(
+    Zi: Tensor, Zj: Tensor, nci: Tensor, ncj: Tensor, c6ab: Tensor, k3: float = d3_k3
+) -> Tensor:
     # gather the relevant entries from the table
     # c6ab (95, 95, 5, 5, 3) --> c6ab_ (n_edges, 5, 5, 3)
     c6ab_ = c6ab[Zi, Zj].type(nci.dtype)
@@ -98,7 +109,7 @@ def _getc6(
     if cn0.size(0) == 0:
         k3_rnc = (k3 * r).view(n_edges, n_c6ab)
     else:
-        k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20 * torch.ones_like(r)).view(n_edges, n_c6ab)
+        k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20).view(n_edges, n_c6ab)
     r_ratio = torch.softmax(k3_rnc, dim=1)
     c6 = (r_ratio * cn0.view(n_edges, n_c6ab)).sum(dim=1)
     return c6
