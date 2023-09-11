@@ -44,12 +44,12 @@ def _ncoord(
     """
     if cutoff is not None:
         # Calculate _ncoord only for r < cutoff
-        within_cutoff = r <= cutoff
-        r = r[within_cutoff]
-        # Zi = Zi[within_cutoff]
-        # Zj = Zj[within_cutoff]
-        idx_i = idx_i[within_cutoff]
-        idx_j = idx_j[within_cutoff]
+        indices = torch.nonzero(r <= cutoff).reshape(-1)
+        r = r[indices]
+        # Zi = Zi[indices]
+        # Zj = Zj[indices]
+        idx_i = idx_i[indices]
+        idx_j = idx_j[indices]
     Zi = Z[idx_i]
     Zj = Z[idx_j]
     rco = rcov[Zi] + rcov[Zj]  # (n_edges,)
