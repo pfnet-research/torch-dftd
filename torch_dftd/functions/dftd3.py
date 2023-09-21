@@ -67,7 +67,13 @@ def _ncoord(
 
 
 def _getc6(
-    Zi: Tensor, Zj: Tensor, nci: Tensor, ncj: Tensor, c6ab: Tensor, k3: float = d3_k3
+    Zi: Tensor,
+    Zj: Tensor,
+    nci: Tensor,
+    ncj: Tensor,
+    c6ab: Tensor,
+    k3: float = d3_k3,
+    n_chunks: Optional[int] = None,
 ) -> Tensor:
     """interpolate c6
 
@@ -78,14 +84,23 @@ def _getc6(
         ncj: (n_edges,)
         c6ab:
         k3:
+        n_chunks:
 
     Returns:
         c6 (Tensor): (n_edges,)
     """
-    chunk_size = 3000000
+    if n_chunks is None:
+        return _getc6_impl(Zi, Zj, nci, ncj, c6ab, k3=k3)
+
+    # TODO(takagi) More balanced split like torch.tensor_split as, for example,
+    # trying to split 13 elements into 6 chunks currently gives 5 chunks:
+    # ([0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12])
+    n_chunks_t = torch.tensor(n_chunks)
+    chunk_size = torch.ceil(Zi.shape[0] / n_chunks_t).to(torch.int64)
     c6s = []
-    for chunk_start in range(0, Zi.shape[0], chunk_size):
-        slc = slice(chunk_start, chunk_start+chunk_size)
+    for i in range(0, n_chunks):
+        chunk_start = i * chunk_size
+        slc = slice(chunk_start, chunk_start + chunk_size)
         c6s.append(_getc6_impl(Zi[slc], Zj[slc], nci[slc], ncj[slc], c6ab, k3=k3))
     return torch.cat(c6s, 0)
 
@@ -141,6 +156,7 @@ def edisp(
     damping: str = "zero",
     bidirectional: bool = False,
     abc: bool = False,
+    n_chunks: Optional[int] = None,
 ):
     """compute d3 dispersion energy in Hartree
 
@@ -170,6 +186,7 @@ def edisp(
         damping (str): damping method, only "zero" is supported.
         bidirectional (bool): calculated `edge_index` is bidirectional or not.
         abc (bool): ATM 3-body interaction
+        n_chunks (int or None): number of times to split c6 computation to reduce peak memory
 
     Returns:
         energy: (n_graphs,) Energy in Hartree unit.
@@ -201,7 +218,7 @@ def edisp(
 
     nci = nc[idx_i]
     ncj = nc[idx_j]
-    c6 = _getc6(Zi, Zj, nci, ncj, c6ab=c6ab, k3=k3)  # c6 coefficients
+    c6 = _getc6(Zi, Zj, nci, ncj, c6ab=c6ab, k3=k3, n_chunks=n_chunks)  # c6 coefficients
 
     c8 = 3 * c6 * r2r4[Zi].type(c6.dtype) * r2r4[Zj].type(c6.dtype)  # c8 coefficient
 
