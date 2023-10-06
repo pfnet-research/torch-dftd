@@ -9,7 +9,7 @@ install_requires: List[str] = [
     "pymatgen>=2020.1.28",
 ]
 extras_require: Dict[str, List[str]] = {
-    "develop": ["pysen[lint]==0.9.1"],
+    "develop": ["pysen[lint]==0.10.5"],
 }
 
 

@@ -165,9 +165,9 @@ def edisp(
     """
     # compute all necessary powers of the distance
     if r2 is None:
-        r2 = r ** 2  # square of distances
+        r2 = r**2  # square of distances
     if r6 is None:
-        r6 = r2 ** 3
+        r6 = r2**3
     if r8 is None:
         r8 = r6 * r2
 
@@ -203,8 +203,8 @@ def edisp(
         # Becke-Johnson damping, zero-damping introduces spurious repulsion
         # and is therefore not supported/implemented
         tmp = a1 * torch.sqrt(c8 / c6) + a2
-        tmp2 = tmp ** 2
-        tmp6 = tmp2 ** 3
+        tmp2 = tmp**2
+        tmp6 = tmp2**3
         tmp8 = tmp6 * tmp2
         e6 = 1 / (r6 + tmp6)
         e8 = 1 / (r8 + tmp8)
@@ -334,19 +334,19 @@ def edisp(
         rav = (4.0 / 3.0) / (rr3_jk * rr3_ij * rr3_ik)
         alp = params["alp"]
         alp8 = alp + 2.0
-        damp = 1.0 / (1.0 + 6.0 * rav ** alp8)
+        damp = 1.0 / (1.0 + 6.0 * rav**alp8)
 
         c6_mem = torch.zeros((n_atoms, n_atoms), dtype=c6.dtype, device=c6.device)
         c6_mem[edge_index[0], edge_index[1]] = c6
         c6_mem[edge_index[1], edge_index[0]] = c6
 
         c9 = torch.sqrt(c6_mem[idx_k, idx_j] * c6_mem[idx_j, idx_i] * c6_mem[idx_i, idx_k])
-        r2ik, r2jk, r2ij = r_ik ** 2, r_jk ** 2, r_ij ** 2
+        r2ik, r2jk, r2ij = r_ik**2, r_jk**2, r_ij**2
         t1 = r2jk + r2ij - r2ik
         t2 = r2ij + r2ik - r2jk
         t3 = r2ik + r2jk - r2ij
         tmp2 = r2ik * r2jk * r2ij
-        ang = (0.375 * t1 * t2 * t3 / tmp2 + 1.0) / (tmp2 ** 1.5)
+        ang = (0.375 * t1 * t2 * t3 / tmp2 + 1.0) / (tmp2**1.5)
         e3 = damp * c9 * ang / multiplicity
 
         # ---------------------------------------------------------------

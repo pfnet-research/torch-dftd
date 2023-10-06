@@ -14,7 +14,7 @@ def poly_smoothing(r: Tensor, cutoff: float) -> Tensor:
     """
     cuton = cutoff - 1
     x = (cutoff - r) / (cutoff - cuton)
-    x2 = x ** 2
+    x2 = x**2
     x3 = x2 * x
     x4 = x3 * x
     x5 = x4 * x
