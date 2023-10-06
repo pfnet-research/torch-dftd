@@ -1,8 +1,8 @@
 #!/bin/bash
 set -eu
 
-#IMAGE=pytorch/pytorch:1.5.1-cuda10.1-cudnn7-devel
-IMAGE=asia.gcr.io/pfn-public-ci/torch-dftd-ci:torch15
+IMAGE=asia-northeast1-docker.pkg.dev/pfn-artifactregistry/torch-dftd/torch-dftd-ci:torch20
+#IMAGE=torch-dftd-ci:torch20
 
 
 main() {
