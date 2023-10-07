@@ -17,7 +17,6 @@ main() {
 
 # 1st pytest: when xdist is enabled with `-n $(nproc)`, benchmark is not executed.
 # 2nd pytest: only execute pytest-benchmark.
-  while :; do free -h; sleep 1; done &
   docker run --runtime=nvidia --rm --volume="$(pwd)":/workspace -w /workspace \
     ${IMAGE} \
     bash -x -c "pip install flake8 pytest pytest-cov pytest-xdist pytest-benchmark && \
