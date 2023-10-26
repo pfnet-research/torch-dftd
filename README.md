@@ -34,14 +34,14 @@ print(f"forces {forces}")
 ## Dependency
 
 The library is tested under following environment.
- - python: 3.6
- - CUDA: 10.2
+ - python: 3.10
+ - CUDA: 12.2
 ```bash
-torch==1.5.1
-ase==3.21.1
+torch==2.0.1
+ase==3.22.1
 # Below is only for 3-body term
-cupy-cuda102==8.6.0
-pytorch-pfn-extras==0.3.2
+cupy-cuda12x==12.2.0
+pytorch-pfn-extras==0.7.3
 ```
 
 ## Development tips

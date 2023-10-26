@@ -6,7 +6,7 @@ from torch import Tensor
 # for converting distance from bohr to angstrom
 d3_autoang = 0.52917726
 # J/mol nm^6 - > au
-c6conv = 1.0e-3 / 2625.4999 / (0.052917726 ** 6)
+c6conv = 1.0e-3 / 2625.4999 / (0.052917726**6)
 
 r0 = torch.tensor(
     [

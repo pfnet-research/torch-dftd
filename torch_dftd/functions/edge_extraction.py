@@ -88,7 +88,7 @@ def calc_edge_index(
         assert cell is None
         # Calculate distance brute force way
         distances = torch.sum((pos.unsqueeze(0) - pos.unsqueeze(1)).pow_(2), dim=2)
-        right_ind, left_ind = torch.where(distances < cutoff ** 2)
+        right_ind, left_ind = torch.where(distances < cutoff**2)
         if bidirectional:
             edge_index = torch.stack(
                 (left_ind[left_ind != right_ind], right_ind[left_ind != right_ind])

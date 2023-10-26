@@ -15,3 +15,18 @@ configs {
         "bash -x .flexci/pytest_script.sh"
   }
 }
+configs {
+  key: "torch-dftd.build-images"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+    }
+    time_limit {
+      seconds: 1800
+    }
+    command:
+        "/bin/bash -x .flexci/build_and_push.sh asia-northeast1-docker.pkg.dev/pfn-artifactregistry/torch-dftd/torch-dftd-ci"
+  }  
+}

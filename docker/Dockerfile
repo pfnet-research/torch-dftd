@@ -34,7 +34,7 @@ RUN pip install -U pip && \
 
 # Install DFTD3
 RUN cd /tmp && \
-  wget https://www.chemie.uni-bonn.de/pctc/mulliken-center/software/dft-d3/dftd3.tgz && \
+  wget https://www.chemiebn.uni-bonn.de/pctc/mulliken-center/software/dft-d3/dft-d3/dftd3.tgz && \
   tar zxvf dftd3.tgz && \
   make && \
   mv dftd3 /usr/local/bin && \

@@ -41,8 +41,8 @@ def edisp_d2(
     """
     # compute all necessary powers of the distance
     # square of distances
-    r2 = r ** 2
-    r6 = r2 ** 3
+    r2 = r**2
+    r6 = r2**3
 
     idx_i, idx_j = edge_index
     # compute all necessary quantities

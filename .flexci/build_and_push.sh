@@ -3,7 +3,7 @@
 IMAGE_BASE="${1:-}"
 IMAGE_PUSH=1
 if [ "${IMAGE_BASE}" = "" ]; then
-  IMAGE_BASE="torch-dftd"
+  IMAGE_BASE="torch-dftd-ci"
   IMAGE_PUSH=0
 fi
 
@@ -31,11 +31,11 @@ docker_build_and_push() {
 
 WAIT_PIDS=""
 
-# PyTorch 1.5 + Python 3.6
-docker_build_and_push torch15 \
-    --build-arg base_image="nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04" \
-    --build-arg python_version="3.6.12" \
-    --build-arg pip_packages="torch==1.5.* torchvision==0.6.* ${TEST_PIP_PACKAGES}" &
+# PyTorch 2.0 + Python 3.10
+docker_build_and_push torch20 \
+    --build-arg base_image="nvidia/cuda:12.2.0-devel-ubuntu20.04" \
+    --build-arg python_version="3.10.11" \
+    --build-arg pip_packages="torch==2.0.* torchvision==0.15.* ${TEST_PIP_PACKAGES}" &
 WAIT_PIDS="$! ${WAIT_PIDS}"
 
 # Wait until the build complete.
