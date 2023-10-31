@@ -253,7 +253,7 @@ def edisp(
         if batch.size()[0] == 0:
             n_graphs = 1
         else:
-            n_graphs = int(batch[-1]) + 1
+            n_graphs = cell.size(0)
         g = e68.new_zeros((n_graphs,), dtype=torch.float64)
         g.scatter_add_(0, batch_edge, e68.to(torch.float64))
 
