@@ -22,6 +22,7 @@ class DFTD3Module(BaseDFTDModule):
         abc (bool): ATM 3-body interaction
         dtype (dtype): internal calculation is done in this precision.
         bidirectional (bool): calculated `edge_index` is bidirectional or not.
+        n_chunks (int): number of times to split c6 computation to reduce peak memory.
     """
 
     def __init__(
@@ -33,6 +34,7 @@ class DFTD3Module(BaseDFTDModule):
         dtype=torch.float32,
         bidirectional: bool = False,
         cutoff_smoothing: str = "none",
+        n_chunks: Optional[int] = None,
     ):
         super(DFTD3Module, self).__init__()
 
@@ -62,6 +64,7 @@ class DFTD3Module(BaseDFTDModule):
         self.dtype = dtype
         self.bidirectional = bidirectional
         self.cutoff_smoothing = cutoff_smoothing
+        self.n_chunks = n_chunks
 
     def calc_energy_batch(
         self,
@@ -105,5 +108,6 @@ class DFTD3Module(BaseDFTDModule):
             abc=self.abc,
             pos=pos_bohr,
             cell=cell_bohr,
+            n_chunks=self.n_chunks,
         )
         return E_disp

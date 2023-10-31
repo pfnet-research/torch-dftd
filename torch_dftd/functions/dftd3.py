@@ -44,12 +44,12 @@ def _ncoord(
     """
     if cutoff is not None:
         # Calculate _ncoord only for r < cutoff
-        within_cutoff = r <= cutoff
-        r = r[within_cutoff]
-        # Zi = Zi[within_cutoff]
-        # Zj = Zj[within_cutoff]
-        idx_i = idx_i[within_cutoff]
-        idx_j = idx_j[within_cutoff]
+        indices = torch.nonzero(r <= cutoff).reshape(-1)
+        r = r[indices]
+        # Zi = Zi[indices]
+        # Zj = Zj[indices]
+        idx_i = idx_i[indices]
+        idx_j = idx_j[indices]
     Zi = Z[idx_i]
     Zj = Z[idx_j]
     rco = rcov[Zi] + rcov[Zj]  # (n_edges,)
@@ -67,7 +67,13 @@ def _ncoord(
 
 
 def _getc6(
-    Zi: Tensor, Zj: Tensor, nci: Tensor, ncj: Tensor, c6ab: Tensor, k3: float = d3_k3
+    Zi: Tensor,
+    Zj: Tensor,
+    nci: Tensor,
+    ncj: Tensor,
+    c6ab: Tensor,
+    k3: float = d3_k3,
+    n_chunks: Optional[int] = None,
 ) -> Tensor:
     """interpolate c6
 
@@ -78,10 +84,30 @@ def _getc6(
         ncj: (n_edges,)
         c6ab:
         k3:
+        n_chunks:
 
     Returns:
         c6 (Tensor): (n_edges,)
     """
+    if n_chunks is None:
+        return _getc6_impl(Zi, Zj, nci, ncj, c6ab, k3=k3)
+
+    # TODO(takagi) More balanced split like torch.tensor_split as, for example,
+    # trying to split 13 elements into 6 chunks currently gives 5 chunks:
+    # ([0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11], [12])
+    n_chunks_t = torch.tensor(n_chunks)
+    chunk_size = torch.ceil(Zi.shape[0] / n_chunks_t).to(torch.int64)
+    c6s = []
+    for i in range(0, n_chunks):
+        chunk_start = i * chunk_size
+        slc = slice(chunk_start, chunk_start + chunk_size)
+        c6s.append(_getc6_impl(Zi[slc], Zj[slc], nci[slc], ncj[slc], c6ab, k3=k3))
+    return torch.cat(c6s, 0)
+
+
+def _getc6_impl(
+    Zi: Tensor, Zj: Tensor, nci: Tensor, ncj: Tensor, c6ab: Tensor, k3: float = d3_k3
+) -> Tensor:
     # gather the relevant entries from the table
     # c6ab (95, 95, 5, 5, 3) --> c6ab_ (n_edges, 5, 5, 3)
     c6ab_ = c6ab[Zi, Zj].type(nci.dtype)
@@ -98,7 +124,7 @@ def _getc6(
     if cn0.size(0) == 0:
         k3_rnc = (k3 * r).view(n_edges, n_c6ab)
     else:
-        k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20 * torch.ones_like(r)).view(n_edges, n_c6ab)
+        k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20).view(n_edges, n_c6ab)
     r_ratio = torch.softmax(k3_rnc, dim=1)
     c6 = (r_ratio * cn0.view(n_edges, n_c6ab)).sum(dim=1)
     return c6
@@ -130,6 +156,7 @@ def edisp(
     damping: str = "zero",
     bidirectional: bool = False,
     abc: bool = False,
+    n_chunks: Optional[int] = None,
 ):
     """compute d3 dispersion energy in Hartree
 
@@ -159,6 +186,7 @@ def edisp(
         damping (str): damping method, only "zero" is supported.
         bidirectional (bool): calculated `edge_index` is bidirectional or not.
         abc (bool): ATM 3-body interaction
+        n_chunks (int or None): number of times to split c6 computation to reduce peak memory
 
     Returns:
         energy: (n_graphs,) Energy in Hartree unit.
@@ -190,7 +218,7 @@ def edisp(
 
     nci = nc[idx_i]
     ncj = nc[idx_j]
-    c6 = _getc6(Zi, Zj, nci, ncj, c6ab=c6ab, k3=k3)  # c6 coefficients
+    c6 = _getc6(Zi, Zj, nci, ncj, c6ab=c6ab, k3=k3, n_chunks=n_chunks)  # c6 coefficients
 
     c8 = 3 * c6 * r2r4[Zi].type(c6.dtype) * r2r4[Zj].type(c6.dtype)  # c8 coefficient
 
