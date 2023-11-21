@@ -96,7 +96,7 @@ class TorchDFTD3Calculator(Calculator):
         Z = torch.tensor(atoms.get_atomic_numbers(), device=self.device)
         if any(atoms.pbc):
             cell: Optional[Tensor] = torch.tensor(
-                atoms.get_cell(), device=self.device, dtype=self.dtype
+                atoms.get_cell().array, device=self.device, dtype=self.dtype
             )
         else:
             cell = None
