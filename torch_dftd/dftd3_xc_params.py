@@ -122,6 +122,10 @@ def get_dftd3_default_params(
             rs6 = 0.5545
             s18 = 2.2609
             rs18 = 3.2297
+        elif xc == "b97-3c":
+            rs6 = 0.3700
+            s18 = 1.5000
+            rs18 = 4.1000
         elif xc == "pbe":
             rs6 = 0.4289
             s18 = 0.7875
