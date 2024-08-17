@@ -26,3 +26,5 @@ line_length = 99
 multi_line_output = 3
 use_parentheses = true
 
+[tool.setuptools.package-data]
+torch_dftd = ["py.typed"]
