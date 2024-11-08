@@ -333,7 +333,7 @@ def get_dftd3_default_params(
             s18 = 1.0886
             rs18 = 5.7341
             # Parameters are taken from Table 1 of ref:
-            # https://pubs.aip.org/aip/jcp/article/154/6/061101/199772/r2SCAN-D4-Dispersion-corrected-meta-generalized
+            # https://doi.org/10.1063/5.0041008
         elif xc == "r2scan":
             rs6 = 0.4948
             s18 = 0.7898
