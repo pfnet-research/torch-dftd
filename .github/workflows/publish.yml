@@ -7,6 +7,9 @@ on:
 jobs:
   pypi-publish:
     runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/torch-dftd
     permissions:
       id-token: write
     steps:
