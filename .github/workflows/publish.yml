@@ -19,5 +19,9 @@ jobs:
       run: |
         pip3 install build wheel
         python3 -m build --wheel
+    - run: |
+        ls dist
+        unzip dist/torch_dftd-0.5.0-py3-none-any.whl
+        ls dist
     # - name: Publish package distributions to PyPI
     #   uses: pypa/gh-action-pypi-publish@release/v1
