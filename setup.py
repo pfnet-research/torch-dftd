@@ -24,6 +24,8 @@ setup(
     name="torch-dftd",
     version=__version__,  # NOQA
     description="pytorch implementation of dftd2 & dftd3",
+    long_description="pytorch implementation of dftd2 & dftd3",
+    long_description_content_type="text/plain",
     packages=find_packages(),
     setup_requires=setup_requires,
     install_requires=install_requires,
