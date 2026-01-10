@@ -109,25 +109,24 @@ def _getc6_impl(
     Zi: Tensor, Zj: Tensor, nci: Tensor, ncj: Tensor, c6ab: Tensor, k3: float = d3_k3
 ) -> Tensor:
     # gather the relevant entries from the table
-    # c6ab (95, 95, 5, 5, 3) --> cni (9025, 5, 5, 1)
-    cn0, cn1, cn2 = c6ab.reshape(-1, 5, 5, 3).split(1, dim=3)
+    # c6ab (95, 95, 5, 5, 3) --> cni (9025, 25, 1)
+    cn0, cn1, cn2 = c6ab.reshape(-1, 25, 3).split(1, dim=2)
     index = Zi * c6ab.size(1) + Zj
 
-    # cni (9025, 5, 5, 1) --> cni (n_edges, 5, 5)
-    cn0 = cn0.squeeze(dim=3)[index].type(nci.dtype)
-    cn1 = cn1.squeeze(dim=3)[index].type(nci.dtype)
-    cn2 = cn2.squeeze(dim=3)[index].type(nci.dtype)
+    # cni (9025, 25, 1) --> cni (n_edges, 25)
+    cn0 = cn0.squeeze(dim=2)[index].type(nci.dtype)
+    cn1 = cn1.squeeze(dim=2)[index].type(nci.dtype)
+    cn2 = cn2.squeeze(dim=2)[index].type(nci.dtype)
 
-    r = (cn1 - nci[:, None, None]) ** 2 + (cn2 - ncj[:, None, None]) ** 2
+    r = (cn1 - nci[:, None]) ** 2 + (cn2 - ncj[:, None]) ** 2
 
     n_edges = r.shape[0]
-    n_c6ab = r.shape[1] * r.shape[2]
     if cn0.size(0) == 0:
-        k3_rnc = (k3 * r).view(n_edges, n_c6ab)
+        k3_rnc = k3 * r
     else:
-        k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20).view(n_edges, n_c6ab)
+        k3_rnc = torch.where(cn0 > 0.0, k3 * r, -1.0e20)
     r_ratio = torch.softmax(k3_rnc, dim=1)
-    c6 = (r_ratio * cn0.view(n_edges, n_c6ab)).sum(dim=1)
+    c6 = (r_ratio * cn0).sum(dim=1)
     return c6
 
 
