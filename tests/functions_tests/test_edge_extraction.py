@@ -3,9 +3,20 @@ import torch
 from torch_dftd.functions.edge_extraction import calc_neighbor_by_ase, calc_neighbor_by_pymatgen
 
 
-def test_calc_neighbor_equivalent():
+@pytest.mark.parametrize("pbc", [
+    (True, True, True),
+    (True, True, False),
+    (True, False, True),
+    (False, True, True),
+    (False, False, True),
+    (False, True, False),
+    (True, False, False),
+    (False, False, False),
+])
+def test_calc_neighbor_equivalent(pbc):
+    torch.manual_seed(42)
     n_nodes = 5
-    pbc = torch.tensor([True, True, True])
+    pbc = torch.tensor(pbc)
     cell = torch.randn((3, 3))
     rel_pos = torch.rand((n_nodes, 3))  # relative position inside cell
     pos = torch.matmul(rel_pos, cell)
@@ -43,6 +54,32 @@ def test_calc_neighbor_equivalent():
             )
         )
     assert set(edge_shift_list1) == set(edge_shift_list2)
+
+
+def test_not_all_periodic():
+    pbc = torch.tensor([True, True, False])
+    cell = torch.tensor([[2.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 10.0]])
+    positions = torch.tensor([
+        [0.0, 0.0, 0.0],
+        [1.9, 1.9, 0.0],
+        [0.0, 0.0, 9.9],
+    ])
+    cutoff = torch.ones(1)
+
+    edge_index, _ = calc_neighbor_by_ase(positions, cell, pbc, cutoff.item())
+    assert edge_index.shape == (2, 2)
+
+    edge_index, _ = calc_neighbor_by_pymatgen(positions, cell, pbc, cutoff.item())
+    assert edge_index.shape == (2, 2)
+
+    pbc = torch.tensor([False, False, True])
+    edge_index, _ = calc_neighbor_by_ase(positions, cell, pbc, cutoff.item())
+    assert edge_index.shape == (2, 2)
+    assert edge_index[0].tolist() == [0, 2]
+
+    edge_index, _ = calc_neighbor_by_pymatgen(positions, cell, pbc, cutoff.item())
+    assert edge_index.shape == (2, 2)
+    assert edge_index[0].tolist() == [0, 2]
 
 
 if __name__ == "__main__":

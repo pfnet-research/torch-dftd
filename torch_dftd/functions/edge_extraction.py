@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from ase.neighborlist import primitive_neighbor_list
 from ase.units import Bohr
-from pymatgen.core import Structure
+from pymatgen.core import Structure, Lattice
 from torch import Tensor
 
 
@@ -42,16 +42,14 @@ def calc_neighbor_by_pymatgen(
         edge_index (Tensor): (2, n_edges) indices of edge, src -> dst.
         S (Tensor): (n_edges, 3) shift tensor
     """  # NOQA
-    if not torch.all(pbc):
-        raise NotImplementedError(f"pbc {pbc} must be true for all axis!")
-
     positions = pos.detach().cpu().numpy().copy()
-    lattice = cell.detach().cpu().numpy().copy()
+    matrix = cell.detach().cpu().numpy().copy()
     n_atoms = positions.shape[0]
     symbols = np.ones(n_atoms)  # Dummy symbols to create `Structure`...
 
+    lattice = Lattice(pbc=tuple(pbc.detach().cpu().numpy()), matrix=matrix)
     struct = Structure(lattice, symbols, positions, coords_are_cartesian=True)
-    c_index, n_index, offsets, n_distance = struct.get_neighbor_list(
+    c_index, n_index, offsets, _ = struct.get_neighbor_list(
         r=cutoff,
         numerical_tol=1e-8,
         exclude_self=True,
