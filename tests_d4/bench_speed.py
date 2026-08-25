@@ -7,7 +7,7 @@ from ase.io import read
 from torch_dftd.torch_dftd4_calculator import TorchDFTD4Calculator
 VAL3="/development-pvc/work/wenwenli/aramoc-sampling/pipeline/v2/val3_exp/cifs"
 systems=[("CALF-20 1x1x1",read(f"{VAL3}/CALF-20_111_DFT_OPT.cif")),("SIFSIX-3-Ni 2x2x1",read(f"{VAL3}/SIFSIX_3_Ni_GEO_OPT.cif")*(2,2,1)),("CALF-20 2x2x2",read(f"{VAL3}/CALF-20_111_DFT_OPT.cif")*(2,2,2))]
-cutsets={"d4-default(60,40,30)":(60.,40.,30.),"pfp-like(26.5,20,26.5)":(26.5,20.,26.5)}
+cutsets={"d4-2body-default(60,20,30)":(60.,20.,30.),"pfp-like(26.5,20,26.5)":(26.5,20.,26.5)}  # ATM cutoff fixed at 20 Bohr: explicit triplet enumeration at 40 Bohr needs ~1e9 triplets
 def med(f,n=3):
     f(); ts=[]
     for _ in range(n):
@@ -22,7 +22,7 @@ for name,a in systems:
             def fort(grad):
                 m=DispersionModel(a.numbers,a.positions/Bohr,charge=0.0,lattice=a.cell.array/Bohr,periodic=np.array([True]*3)); m.set_realspace_cutoff(*cut)
                 return m.get_dispersion(DampingParam(method="pbe",atm=atm),grad=grad)["energy"]*Hartree
-            if not (atm and cut[1]==40. and len(a)>1000):
+            if True:
                 row["fortran_E_ms"]=round(1e3*med(lambda: fort(False)),1); row["fortran_EF_ms"]=round(1e3*med(lambda: fort(True),1),1); row["E_fortran"]=round(fort(False),6)
             for dev in ("cpu","cuda"):
                 if dev=="cpu" and len(a)>1000 and cut[0]==60.: continue

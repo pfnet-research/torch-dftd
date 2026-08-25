@@ -46,7 +46,7 @@ class DFTD4Module(BaseDFTDModule):
         d4_filepath = str(Path(os.path.abspath(__file__)).parent / "params" / "dftd4_params.npz")
         d4 = np.load(d4_filepath)
         for k in ["rc6", "refcovcn", "refq", "rcov", "r4r2", "en", "zeff", "gam", "eeq_chi", "eeq_eta", "eeq_kcn", "eeq_rad"]:
-            self.register_buffer(k, torch.tensor(d4[k], dtype=torch.float64 if k in ("rc6", "refcovcn", "refq", "zeff", "gam", "eeq_chi", "eeq_eta", "eeq_kcn", "eeq_rad") else dtype))
+            self.register_buffer(k, torch.tensor(d4[k], dtype=torch.float64 if k in ("refcovcn", "refq", "zeff", "gam", "eeq_chi", "eeq_eta", "eeq_kcn", "eeq_rad") else dtype))
         self.register_buffer("refc", torch.tensor(d4["refc"], dtype=torch.int64))
         for k in ("cnthr", "cn_eeq_thr", "abc_cutoff", "eeq_cutoff"):
             if locals()[k] > cutoff:

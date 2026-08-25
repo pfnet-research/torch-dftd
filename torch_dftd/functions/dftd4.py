@@ -203,10 +203,15 @@ def weight_references(Z, cn, q, refc, refcovcn, refq, zeff, gam, ga, gc, wf) -> 
     return (zeta * gw).to(cn.dtype)
 
 
-def _edge_c6(Zi, Zj, gwi, gwj, rc6) -> Tensor:
-    """C6 per edge from the reference-C6 table (nz, nz, 7, 7)."""
-    t = rc6[Zi, Zj]  # (E, 7, 7)
-    return torch.einsum("eab,ea,eb->e", t.to(gwi.dtype), gwi, gwj)
+def _edge_c6(Zi, Zj, gwi, gwj, rc6, chunk: int = 500000) -> Tensor:
+    """C6 per edge from the reference-C6 table (nz, nz, 7, 7); chunked to bound the (E, 7, 7) gather."""
+    n = Zi.shape[0]
+    if n <= chunk:
+        return torch.einsum("eab,ea,eb->e", rc6[Zi, Zj].to(gwi.dtype), gwi, gwj)
+    return torch.cat([
+        torch.einsum("eab,ea,eb->e", rc6[Zi[s:s + chunk], Zj[s:s + chunk]].to(gwi.dtype), gwi[s:s + chunk], gwj[s:s + chunk])
+        for s in range(0, n, chunk)
+    ])
 
 
 def edisp_d4(
