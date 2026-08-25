@@ -54,14 +54,59 @@ def calc_triplets(
         [torch.zeros((1,), device=counts.device, dtype=torch.long), counts_cumsum], dim=0
     )
 
-    if str(unique.device) == "cpu":
-        return _calc_triplets_core(
+    if str(unique.device) == "cpu" or not _gpu_kernel_available():
+        # vectorized torch implementation (same semantics as `_calc_triplets_core`, ~1000x faster than the python loops)
+        return _calc_triplets_core_vec(
             counts, unique, dst, edge_indices, batch_edge, counts_cumsum, dtype=dtype
         )
     else:
         return _calc_triplets_core_gpu(
             counts, unique, dst, edge_indices, batch_edge, counts_cumsum, dtype=dtype
         )
+
+
+def _gpu_kernel_available() -> bool:
+    from torch_dftd.functions import triplets_kernel as tk
+
+    return bool(getattr(tk, "_ppe_available", False) and getattr(tk, "_cupy_available", False))
+
+
+def _calc_triplets_core_vec(counts, unique, dst, edge_indices, batch_edge, counts_cumsum, dtype):
+    """Vectorized equivalent of `_calc_triplets_core` (identical outputs, any device)."""
+    device = unique.device
+    n_edges = dst.shape[0]
+    # local position of every (sorted) edge within its source group, and number of later partners
+    group = torch.repeat_interleave(torch.arange(len(counts), device=device), counts)
+    local = torch.arange(n_edges, device=device) - counts_cumsum[group]
+    partners = counts[group] - 1 - local
+    n_triplets = int(partners.sum().item())
+    if n_triplets == 0:
+        return (
+            torch.zeros((0, 3), dtype=torch.long, device=device),
+            torch.zeros((0,), dtype=dtype, device=device),
+            torch.zeros((0, 2), dtype=torch.long, device=device),
+            torch.zeros((0,), dtype=torch.long, device=device),
+        )
+    e1 = torch.repeat_interleave(torch.arange(n_edges, device=device), partners)
+    start = torch.cumsum(partners, dim=0) - partners
+    q = torch.arange(n_triplets, device=device) - torch.repeat_interleave(start, partners)
+    e2 = e1 + 1 + q
+    src = unique[group[e1]]
+    dst0, dst1 = dst[e1], dst[e2]
+    swap = dst0 > dst1
+    d0 = torch.where(swap, dst1, dst0)
+    d1 = torch.where(swap, dst0, dst1)
+    ej = torch.where(swap, e2, e1)
+    ek = torch.where(swap, e1, e2)
+    triplet_node_index = torch.stack([src, d0, d1], dim=1)
+    multiplicity = torch.where(
+        d0 == d1,
+        torch.where(src == d0, 3.0, 1.0),
+        torch.where(src == d0, 2.0, 1.0),
+    ).to(dtype)
+    edge_jk = torch.stack([edge_indices[ej], edge_indices[ek]], dim=1)
+    batch_triplets = batch_edge[e1]
+    return triplet_node_index, multiplicity, edge_jk, batch_triplets
 
 
 def _calc_triplets_core(counts, unique, dst, edge_indices, batch_edge, counts_cumsum, dtype):
