@@ -1,8 +1,9 @@
+import os
 from typing import Optional, Tuple
 
-import os
 import torch
 from torch import Tensor
+
 from torch_dftd.functions.triplets_kernel import _calc_triplets_core_gpu
 
 
@@ -55,7 +56,11 @@ def calc_triplets(
         [torch.zeros((1,), device=counts.device, dtype=torch.long), counts_cumsum], dim=0
     )
 
-    if str(unique.device) == "cpu" or not _gpu_kernel_available() or os.environ.get("TORCH_DFTD_TRIPLETS_KERNEL", "0") != "1":
+    if (
+        str(unique.device) == "cpu"
+        or not _gpu_kernel_available()
+        or os.environ.get("TORCH_DFTD_TRIPLETS_KERNEL", "0") != "1"
+    ):
         # vectorized torch implementation (same semantics as `_calc_triplets_core`, ~1000x faster than the python loops)
         return _calc_triplets_core_vec(
             counts, unique, dst, edge_indices, batch_edge, counts_cumsum, dtype=dtype

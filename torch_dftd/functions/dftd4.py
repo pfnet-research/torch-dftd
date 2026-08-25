@@ -6,6 +6,7 @@ Differences from ``dftd3.py``: D4 needs (i) an electronegativity-weighted erf co
 reference polarizabilities. Damping is Becke-Johnson only. All distances/energies here are in
 Bohr/Hartree; the caller converts.
 """
+
 import math
 from typing import Dict, Optional, Tuple
 
@@ -28,7 +29,9 @@ WF_DEFAULT = 6.0
 SQRT2PI = math.sqrt(2.0 / math.pi)
 
 
-def _scatter_pairs(vals: Tensor, idx_i: Tensor, idx_j: Tensor, n: int, bidirectional: bool) -> Tensor:
+def _scatter_pairs(
+    vals: Tensor, idx_i: Tensor, idx_j: Tensor, n: int, bidirectional: bool
+) -> Tensor:
     """Sum per-edge values onto atoms. For unidirectional edge lists each pair contributes to both ends."""
     out = vals.new_zeros(n)
     out.index_add_(0, idx_i, vals)
@@ -52,7 +55,9 @@ def ncoord_d4(Z, r, idx_i, idx_j, rcov, en, cutoff, bidirectional, n_atoms) -> T
     return _scatter_pairs(cnt, idx_i, idx_j, n_atoms, bidirectional)
 
 
-def ncoord_eeq(Z, r, idx_i, idx_j, rcov, cutoff, bidirectional, n_atoms, cn_max=EEQ_CN_MAX) -> Tensor:
+def ncoord_eeq(
+    Z, r, idx_i, idx_j, rcov, cutoff, bidirectional, n_atoms, cn_max=EEQ_CN_MAX
+) -> Tensor:
     """EEQ coordination number (erf counting, no EN weight, smooth log cutoff at cn_max)."""
     m = r <= cutoff
     rc = rcov[Z[idx_i]] + rcov[Z[idx_j]]
@@ -112,7 +117,11 @@ def eeq_charges(
     q_out = pos.new_zeros(n_atoms, dtype=d64)
     idx_i, idx_j = edge_index
     batch_a = torch.zeros(n_atoms, dtype=torch.long, device=dev) if batch is None else batch
-    batch_e = torch.zeros(idx_i.shape[0], dtype=torch.long, device=dev) if batch_edge is None else batch_edge
+    batch_e = (
+        torch.zeros(idx_i.shape[0], dtype=torch.long, device=dev)
+        if batch_edge is None
+        else batch_edge
+    )
     r64 = r.to(d64)
     pos64 = pos.to(d64)
 
@@ -127,12 +136,20 @@ def eeq_charges(
         Zg = Z[aidx]
         radg = rad[Zg].to(d64)
         etag = eta[Zg].to(d64)
-        rhs = (-chi[Zg].to(d64) + kcn[Zg].to(d64) * torch.sqrt(torch.clamp(cn_eeq[aidx].to(d64), min=0.0)))
-        periodic = cell is not None and pbc is not None and bool(torch.any(pbc[g] if pbc.dim() == 2 else pbc))
+        rhs = -chi[Zg].to(d64) + kcn[Zg].to(d64) * torch.sqrt(
+            torch.clamp(cn_eeq[aidx].to(d64), min=0.0)
+        )
+        periodic = (
+            cell is not None
+            and pbc is not None
+            and bool(torch.any(pbc[g] if pbc.dim() == 2 else pbc))
+        )
         if periodic:
             pb = pbc[g] if pbc.dim() == 2 else pbc
             if not bool(torch.all(pb)):
-                raise NotImplementedError("DFT-D4 EEQ: only fully periodic or non-periodic systems are supported")
+                raise NotImplementedError(
+                    "DFT-D4 EEQ: only fully periodic or non-periodic systems are supported"
+                )
             cellg = (cell[g] if cell.dim() == 3 else cell).to(d64)
             vol = torch.abs(torch.det(cellg))
             # Ewald splitting: real-space part decays as erfc(alpha r) -> tol at eeq_cutoff
@@ -150,7 +167,9 @@ def eeq_charges(
                 A.index_put_((ej, ei), v, accumulate=True)
             # reciprocal space
             G, g2 = _reciprocal_vectors(cellg, gcut)
-            wG = 2.0 * (4.0 * math.pi / vol) * torch.exp(-g2 / (4.0 * alpha * alpha)) / g2  # x2: half space
+            wG = (
+                2.0 * (4.0 * math.pi / vol) * torch.exp(-g2 / (4.0 * alpha * alpha)) / g2
+            )  # x2: half space
             phase = pos64[aidx] @ G.transpose(0, 1)  # (n, M)
             C, S = torch.cos(phase), torch.sin(phase)
             A = A + (C * wG) @ C.transpose(0, 1) + (S * wG) @ S.transpose(0, 1)
@@ -168,7 +187,15 @@ def eeq_charges(
             A = A + torch.diag(etag + SQRT2PI / radg)
         # bordered system with charge constraint
         ones = torch.ones((n, 1), dtype=d64, device=dev)
-        M = torch.cat([torch.cat([A, ones], dim=1), torch.cat([ones.transpose(0, 1), torch.zeros((1, 1), dtype=d64, device=dev)], dim=1)], dim=0)
+        M = torch.cat(
+            [
+                torch.cat([A, ones], dim=1),
+                torch.cat(
+                    [ones.transpose(0, 1), torch.zeros((1, 1), dtype=d64, device=dev)], dim=1
+                ),
+            ],
+            dim=0,
+        )
         b = torch.cat([rhs, total_charge[g].to(d64).reshape(1)])
         x = torch.linalg.solve(M, b)
         q_out = q_out.index_copy(0, aidx, x[:n])
@@ -190,7 +217,9 @@ def weight_references(Z, cn, q, refc, refcovcn, refq, zeff, gam, ga, gc, wf) -> 
     norm = torch.sum(expw, dim=-1, keepdim=True)
     gw = expw / torch.where(norm > 0, norm, torch.ones_like(norm))
     # underflow fallback: put all weight on the reference with the largest CN
-    maxcn = torch.max(torch.where(mask, refcn, torch.full_like(refcn, -1.0)), dim=-1, keepdim=True)[0]
+    maxcn = torch.max(
+        torch.where(mask, refcn, torch.full_like(refcn, -1.0)), dim=-1, keepdim=True
+    )[0]
     bad = (norm <= 0) | ~torch.isfinite(norm)
     gw = torch.where(bad.expand_as(gw), (refcn == maxcn).to(d64) * mask.to(d64), gw)
     zf = zeff[Z].to(d64).unsqueeze(-1)
@@ -198,7 +227,9 @@ def weight_references(Z, cn, q, refc, refcovcn, refq, zeff, gam, ga, gc, wf) -> 
     qref = refq[Z].to(d64) + zf
     qmod = q.to(d64).unsqueeze(-1) + zf
     scale = torch.exp(gm * (1.0 - qref / torch.where(qmod > 0, qmod, torch.ones_like(qmod))))
-    zeta = torch.where(qmod > 0.0, torch.exp(ga * (1.0 - scale)), torch.full_like(scale, math.exp(ga)))
+    zeta = torch.where(
+        qmod > 0.0, torch.exp(ga * (1.0 - scale)), torch.full_like(scale, math.exp(ga))
+    )
     zeta = torch.where(mask, zeta, torch.zeros_like(zeta))
     return (zeta * gw).to(cn.dtype)
 
@@ -208,10 +239,17 @@ def _edge_c6(Zi, Zj, gwi, gwj, rc6, chunk: int = 500000) -> Tensor:
     n = Zi.shape[0]
     if n <= chunk:
         return torch.einsum("eab,ea,eb->e", rc6[Zi, Zj].to(gwi.dtype), gwi, gwj)
-    return torch.cat([
-        torch.einsum("eab,ea,eb->e", rc6[Zi[s:s + chunk], Zj[s:s + chunk]].to(gwi.dtype), gwi[s:s + chunk], gwj[s:s + chunk])
-        for s in range(0, n, chunk)
-    ])
+    return torch.cat(
+        [
+            torch.einsum(
+                "eab,ea,eb->e",
+                rc6[Zi[s : s + chunk], Zj[s : s + chunk]].to(gwi.dtype),
+                gwi[s : s + chunk],
+                gwj[s : s + chunk],
+            )
+            for s in range(0, n, chunk)
+        ]
+    )
 
 
 def edisp_d4(
@@ -262,10 +300,38 @@ def edisp_d4(
     cn = ncoord_d4(Z, r, idx_i, idx_j, tables["rcov"], tables["en"], cnthr, bidirectional, n_atoms)
     cn_eeq = ncoord_eeq(Z, r, idx_i, idx_j, tables["rcov"], cn_eeq_thr, bidirectional, n_atoms)
     q = eeq_charges(
-        Z, pos, r, edge_index, cn_eeq, tables["eeq_chi"], tables["eeq_eta"], tables["eeq_kcn"], tables["eeq_rad"],
-        cell, pbc, batch, batch_edge, n_graphs, total_charge, eeq_cutoff, ewald_tol, bidirectional,
+        Z,
+        pos,
+        r,
+        edge_index,
+        cn_eeq,
+        tables["eeq_chi"],
+        tables["eeq_eta"],
+        tables["eeq_kcn"],
+        tables["eeq_rad"],
+        cell,
+        pbc,
+        batch,
+        batch_edge,
+        n_graphs,
+        total_charge,
+        eeq_cutoff,
+        ewald_tol,
+        bidirectional,
     )
-    gw = weight_references(Z, cn, q, tables["refc"], tables["refcovcn"], tables["refq"], tables["zeff"], tables["gam"], ga, gc, wf)
+    gw = weight_references(
+        Z,
+        cn,
+        q,
+        tables["refc"],
+        tables["refcovcn"],
+        tables["refq"],
+        tables["zeff"],
+        tables["gam"],
+        ga,
+        gc,
+        wf,
+    )
     within = r <= cutoff
     c6 = _edge_c6(Zi, Zj, gw[idx_i], gw[idx_j], tables["rc6"])
     r4r2 = tables["r4r2"].to(c6.dtype)
@@ -293,14 +359,30 @@ def edisp_d4(
 
     if abc and params.get("s9", 1.0) != 0.0:
         # ATM three-body term: C9 from charge-independent C6 (q = 0), BJ radii, zero damping (alp/3 on the triple product)
-        gw0 = weight_references(Z, cn, torch.zeros_like(q), tables["refc"], tables["refcovcn"], tables["refq"], tables["zeff"], tables["gam"], ga, gc, wf)
+        gw0 = weight_references(
+            Z,
+            cn,
+            torch.zeros_like(q),
+            tables["refc"],
+            tables["refcovcn"],
+            tables["refq"],
+            tables["zeff"],
+            tables["gam"],
+            ga,
+            gc,
+            wf,
+        )
         within_abc = r <= abc_cutoff
         edge_abc = edge_index[:, within_abc]
         batch_edge_abc = None if batch_edge is None else batch_edge[within_abc]
         shift_abc = None if shift_pos is None else shift_pos[within_abc]
         if not bidirectional:
             edge_abc = torch.cat([edge_abc, edge_abc.flip(dims=[0])], dim=1)
-            batch_edge_abc = None if batch_edge_abc is None else torch.cat([batch_edge_abc, batch_edge_abc], dim=0)
+            batch_edge_abc = (
+                None
+                if batch_edge_abc is None
+                else torch.cat([batch_edge_abc, batch_edge_abc], dim=0)
+            )
             shift_abc = None if shift_abc is None else torch.cat([shift_abc, -shift_abc], dim=0)
         with torch.no_grad():
             triplet_node_index, multiplicity, edge_jk, batch_triplets = calc_triplets(
@@ -308,10 +390,16 @@ def edisp_d4(
             )
             batch_triplets = None if batch_edge is None else batch_triplets
         tj, tk = triplet_node_index[:, 1], triplet_node_index[:, 2]
-        shift_jk = None if shift_abc is None else shift_abc[edge_jk[:, 0]] - shift_abc[edge_jk[:, 1]]
+        shift_jk = (
+            None if shift_abc is None else shift_abc[edge_jk[:, 0]] - shift_abc[edge_jk[:, 1]]
+        )
         r_jk = calc_distances(pos, torch.stack([tj, tk], dim=0), cell, shift_jk)
         ok = r_jk <= abc_cutoff
-        triplet_node_index, multiplicity, edge_jk = triplet_node_index[ok], multiplicity[ok], edge_jk[ok]
+        triplet_node_index, multiplicity, edge_jk = (
+            triplet_node_index[ok],
+            multiplicity[ok],
+            edge_jk[ok],
+        )
         batch_triplets = None if batch_triplets is None else batch_triplets[ok]
         r_jk = r_jk[ok]
         ti, tj, tk = triplet_node_index[:, 0], triplet_node_index[:, 1], triplet_node_index[:, 2]

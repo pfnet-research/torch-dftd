@@ -45,12 +45,47 @@ class DFTD4Module(BaseDFTDModule):
         super(DFTD4Module, self).__init__()
         d4_filepath = str(Path(os.path.abspath(__file__)).parent / "params" / "dftd4_params.npz")
         d4 = np.load(d4_filepath)
-        for k in ["rc6", "refcovcn", "refq", "rcov", "r4r2", "en", "zeff", "gam", "eeq_chi", "eeq_eta", "eeq_kcn", "eeq_rad"]:
-            self.register_buffer(k, torch.tensor(d4[k], dtype=torch.float64 if k in ("refcovcn", "refq", "zeff", "gam", "eeq_chi", "eeq_eta", "eeq_kcn", "eeq_rad") else dtype))
+        for k in [
+            "rc6",
+            "refcovcn",
+            "refq",
+            "rcov",
+            "r4r2",
+            "en",
+            "zeff",
+            "gam",
+            "eeq_chi",
+            "eeq_eta",
+            "eeq_kcn",
+            "eeq_rad",
+        ]:
+            self.register_buffer(
+                k,
+                torch.tensor(
+                    d4[k],
+                    dtype=(
+                        torch.float64
+                        if k
+                        in (
+                            "refcovcn",
+                            "refq",
+                            "zeff",
+                            "gam",
+                            "eeq_chi",
+                            "eeq_eta",
+                            "eeq_kcn",
+                            "eeq_rad",
+                        )
+                        else dtype
+                    ),
+                ),
+            )
         self.register_buffer("refc", torch.tensor(d4["refc"], dtype=torch.int64))
         for k in ("cnthr", "cn_eeq_thr", "abc_cutoff", "eeq_cutoff"):
             if locals()[k] > cutoff:
-                print(f"WARNING: {k} {locals()[k]} is larger than cutoff {cutoff}; cutoff distance is used")
+                print(
+                    f"WARNING: {k} {locals()[k]} is larger than cutoff {cutoff}; cutoff distance is used"
+                )
         self.params = params
         self.cutoff = cutoff
         self.cnthr = min(cnthr, cutoff)
@@ -66,7 +101,24 @@ class DFTD4Module(BaseDFTDModule):
         self.total_charge: Optional[Tensor] = None  # (n_graphs,) optional, set by the calculator
 
     def _tables(self) -> Dict[str, Tensor]:
-        return {k: getattr(self, k) for k in ["rc6", "refc", "refcovcn", "refq", "rcov", "r4r2", "en", "zeff", "gam", "eeq_chi", "eeq_eta", "eeq_kcn", "eeq_rad"]}
+        return {
+            k: getattr(self, k)
+            for k in [
+                "rc6",
+                "refc",
+                "refcovcn",
+                "refq",
+                "rcov",
+                "r4r2",
+                "en",
+                "zeff",
+                "gam",
+                "eeq_chi",
+                "eeq_eta",
+                "eeq_kcn",
+                "eeq_rad",
+            ]
+        }
 
     def calc_energy_batch(
         self,
@@ -89,12 +141,28 @@ class DFTD4Module(BaseDFTDModule):
         shift_bohr = shift_pos / d3_autoang
         r = calc_distances(pos_bohr, edge_index, cell_bohr, shift_bohr)
         E, q, _, _ = edisp_d4(
-            Z, r, edge_index, pos_bohr, cell_bohr, pbc, shift_bohr, batch, batch_edge,
-            params=self.params, tables=self._tables(),
-            cutoff=self.cutoff / Bohr, cnthr=self.cnthr / Bohr, cn_eeq_thr=self.cn_eeq_thr / Bohr,
-            eeq_cutoff=self.eeq_cutoff / Bohr, abc_cutoff=self.abc_cutoff / Bohr,
-            total_charge=self.total_charge if total_charge is None else total_charge, abc=self.abc, bidirectional=self.bidirectional,
-            cutoff_smoothing=self.cutoff_smoothing, ewald_tol=self.ewald_tol, return_charges=True,
+            Z,
+            r,
+            edge_index,
+            pos_bohr,
+            cell_bohr,
+            pbc,
+            shift_bohr,
+            batch,
+            batch_edge,
+            params=self.params,
+            tables=self._tables(),
+            cutoff=self.cutoff / Bohr,
+            cnthr=self.cnthr / Bohr,
+            cn_eeq_thr=self.cn_eeq_thr / Bohr,
+            eeq_cutoff=self.eeq_cutoff / Bohr,
+            abc_cutoff=self.abc_cutoff / Bohr,
+            total_charge=self.total_charge if total_charge is None else total_charge,
+            abc=self.abc,
+            bidirectional=self.bidirectional,
+            cutoff_smoothing=self.cutoff_smoothing,
+            ewald_tol=self.ewald_tol,
+            return_charges=True,
         )
         self.last_charges = q.detach()
         return d3_autoev * E

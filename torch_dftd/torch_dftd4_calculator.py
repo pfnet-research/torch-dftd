@@ -54,8 +54,16 @@ class TorchDFTD4Calculator(TorchDFTD3Calculator):
         self.charge = charge
         self.device = torch.device(device)
         self.dftd_module = DFTD4Module(
-            self.params, cutoff=cutoff, cnthr=cnthr, cn_eeq_thr=cn_eeq_thr, eeq_cutoff=eeq_cutoff, abc=abc,
-            abc_cutoff=abc_cutoff, ewald_tol=ewald_tol, dtype=dtype, bidirectional=bidirectional,
+            self.params,
+            cutoff=cutoff,
+            cnthr=cnthr,
+            cn_eeq_thr=cn_eeq_thr,
+            eeq_cutoff=eeq_cutoff,
+            abc=abc,
+            abc_cutoff=abc_cutoff,
+            ewald_tol=ewald_tol,
+            dtype=dtype,
+            bidirectional=bidirectional,
             cutoff_smoothing=cutoff_smoothing,
         )
         self.dftd_module.to(device)
@@ -66,5 +74,7 @@ class TorchDFTD4Calculator(TorchDFTD3Calculator):
 
     def _preprocess_atoms(self, atoms: Atoms):
         d = super()._preprocess_atoms(atoms)
-        self.dftd_module.total_charge = torch.tensor([self.charge], device=self.device, dtype=self.dtype)
+        self.dftd_module.total_charge = torch.tensor(
+            [self.charge], device=self.device, dtype=self.dtype
+        )
         return d
