@@ -1,5 +1,6 @@
 from typing import Dict, Optional, Tuple
 
+import numpy as np
 import torch
 from ase import Atoms
 from ase.calculators.calculator import Calculator, PropertyNotImplementedError, all_changes
@@ -96,7 +97,7 @@ class TorchDFTD3Calculator(Calculator):
         Z = torch.tensor(atoms.get_atomic_numbers(), device=self.device)
         if any(atoms.pbc):
             cell: Optional[Tensor] = torch.tensor(
-                atoms.get_cell(), device=self.device, dtype=self.dtype
+                np.asarray(atoms.get_cell()), device=self.device, dtype=self.dtype
             )
         else:
             cell = None
