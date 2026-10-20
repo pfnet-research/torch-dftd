@@ -39,4 +39,4 @@ jobs:
         pip install torch --index-url https://download.pytorch.org/whl/cpu
         pip install -e .[develop]
     - name: Run pytest
-      run: pytest -m "not slow" -k "not cuda" --benchmark-disable tests
+      run: pytest -k "not cuda" --benchmark-disable tests
