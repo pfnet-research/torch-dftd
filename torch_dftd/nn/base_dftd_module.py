@@ -1,9 +1,6 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-import numpy as np
 import torch
-from ase.neighborlist import primitive_neighbor_list
-from ase.units import Bohr
 from torch import Tensor, nn
 
 
