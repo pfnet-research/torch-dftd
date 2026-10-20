@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 import torch
 from torch import Tensor
+
 from torch_dftd.functions.triplets_kernel import _calc_triplets_core_gpu
 
 
