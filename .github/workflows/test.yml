@@ -1,0 +1,42 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: astral-sh/ruff-action@v3
+      with:
+        args: check
+    - uses: astral-sh/ruff-action@v3
+      with:
+        args: format --check
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Install gfortran
+      run: sudo apt-get update && sudo apt-get install -y gfortran
+    - name: Build DFTD3 program
+      run: |
+        git clone --depth 1 --branch 0.10 https://github.com/dftbplus/dftd3-lib.git /tmp/dftd3-lib
+        # gfortran >= 10 rejects `stop'...'` without a blank.
+        sed -i "s/stop'/stop '/" /tmp/dftd3-lib/prg/extras.f90
+        cmake -S /tmp/dftd3-lib -B /tmp/dftd3-lib/build -DCMAKE_BUILD_TYPE=Release
+        cmake --build /tmp/dftd3-lib/build -j "$(nproc)"
+        echo /tmp/dftd3-lib/build/prg >> "$GITHUB_PATH"
+    - name: Install dependencies
+      run: |
+        pip install torch --index-url https://download.pytorch.org/whl/cpu
+        pip install -e .[develop]
+    - name: Run pytest
+      run: pytest -m "not slow" -k "not cuda" --benchmark-disable tests

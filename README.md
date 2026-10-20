@@ -46,13 +46,15 @@ pytorch-pfn-extras==0.7.3
 
 ## Development tips
 ### Formatting & Linting
-[pysen](https://github.com/pfnet/pysen) is used to format the python code of this repository.<br/>
+[ruff](https://github.com/astral-sh/ruff) is used to format and lint the python code of this repository.<br/>
 You can simply run below to get your code formatted :)
 ```bash
 # Format the code
-$ pysen run format
+$ ruff check --fix
+$ ruff format
 # Check the code format
-$ pysen run lint
+$ ruff check
+$ ruff format --check
 ```
 
 ### CUDA Kernel function implementation with cupy

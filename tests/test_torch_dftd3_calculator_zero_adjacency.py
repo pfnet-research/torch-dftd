@@ -1,15 +1,16 @@
 """
 DFTD3 program need to be installed to test this method.
 """
-import tempfile
+
 from typing import List
 
 import numpy as np
 import pytest
 import torch
 from ase import Atoms
-from ase.build import fcc111, molecule
+from ase.build import molecule
 from ase.calculators.emt import EMT
+
 from torch_dftd.testing.damping import damping_method_list, damping_xc_combination_list
 from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
 

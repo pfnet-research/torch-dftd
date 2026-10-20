@@ -1,8 +1,10 @@
 """pytorch implementation of Grimme's D2 method"""  # NOQA
+
 from typing import Dict, Optional
 
 import torch
 from torch import Tensor
+
 from torch_dftd.functions.smoothing import poly_smoothing
 
 
@@ -50,9 +52,7 @@ def edisp_d2(
     Zj = Z[idx_j]
 
     if damping != "zero":
-        raise ValueError(
-            f"Only zero-damping can be used with the D2 dispersion correction method!"
-        )
+        raise ValueError("Only zero-damping can be used with the D2 dispersion correction method!")
     alp6 = params["alp"]
     s6 = params["s6"]
     rs6 = params["rs6"]

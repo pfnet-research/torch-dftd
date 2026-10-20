@@ -10,6 +10,7 @@ from ase import Atoms
 from ase.calculators.dftd3 import DFTD3
 from ase.cluster.cubic import FaceCenteredCubic
 from ase.io import write
+
 from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
 
 
@@ -21,7 +22,7 @@ def compare_forces(atoms: Atoms, calc1, calc2):
     try:
         F1 = atoms.get_forces()
         t1 = perf_counter() - start
-    except:
+    except Exception:
         print("Calculation failed")
         F1 = np.array([np.nan])
         t1 = np.nan
@@ -111,7 +112,7 @@ if __name__ == "__main__":
         y="time (ms)",
         color="Calculator",
         barmode="group",
-        title=f"Execution time comparison",
+        title="Execution time comparison",
         text="time_round",
         height=600,
         width=1200,
