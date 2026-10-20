@@ -20,7 +20,7 @@ from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
     params=[
         pytest.param("mol", id="mol"),
         pytest.param("slab", id="slab"),
-        pytest.param("large", marks=[pytest.mark.slow], id="large"),
+        pytest.param("large", id="large"),
     ]
 )
 def atoms(request) -> Atoms:

@@ -20,7 +20,7 @@ from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
         pytest.param("case1", id="mol+slab"),
         pytest.param("case2", id="mol+slab(wo_pbc)"),
         pytest.param("case3", id="null"),
-        pytest.param("case4", marks=[pytest.mark.slow], id="large"),
+        pytest.param("case4", id="large"),
     ]
 )
 def atoms_list(request) -> List[Atoms]:
