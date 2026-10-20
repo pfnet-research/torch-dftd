@@ -32,7 +32,7 @@ class TorchDFTD3Calculator(Calculator):
     """
 
     name = "TorchDFTD3Calculator"
-    implemented_properties = ["energy", "forces", "stress"]
+    implemented_properties = ["energy", "free_energy", "forces", "stress"]
 
     def __init__(
         self,
