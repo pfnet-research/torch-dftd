@@ -2,7 +2,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 from ase import Atoms
-from ase.calculators.calculator import Calculator, PropertyNotImplementedError, all_changes
+from ase.calculators.calculator import Calculator, all_changes
 from ase.units import Bohr
 from torch import Tensor
 
