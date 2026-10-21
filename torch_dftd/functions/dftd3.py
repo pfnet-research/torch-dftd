@@ -1,8 +1,10 @@
 """pytorch implementation of Grimme's D3 method"""  # NOQA
+
 from typing import Dict, Optional
 
 import torch
 from torch import Tensor
+
 from torch_dftd.functions.distance import calc_distances
 from torch_dftd.functions.smoothing import poly_smoothing
 from torch_dftd.functions.triplets import calc_triplets
@@ -120,7 +122,6 @@ def _getc6_impl(
 
     r = (cn1 - nci[:, None]) ** 2 + (cn2 - ncj[:, None]) ** 2
 
-    n_edges = r.shape[0]
     if cn0.size(0) == 0:
         k3_rnc = k3 * r
     else:

@@ -1,8 +1,8 @@
 """
 DFTD3 program need to be installed to test this method.
 """
+
 import tempfile
-from typing import List
 
 import numpy as np
 import pytest
@@ -11,6 +11,7 @@ from ase import Atoms
 from ase.build import bulk, fcc111, molecule
 from ase.calculators.dftd3 import DFTD3
 from ase.calculators.emt import EMT
+
 from torch_dftd.testing.damping import damping_method_list, damping_xc_combination_list
 from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
 
@@ -19,7 +20,7 @@ from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
     params=[
         pytest.param("mol", id="mol"),
         pytest.param("slab", id="slab"),
-        pytest.param("large", marks=[pytest.mark.slow], id="large"),
+        pytest.param("large", id="large"),
     ]
 )
 def atoms(request) -> Atoms:
@@ -40,11 +41,9 @@ def atoms(request) -> Atoms:
 
 
 def _assert_energy_equal(calc1, calc2, atoms: Atoms):
-    calc1.reset()
     atoms.calc = calc1
     e1 = atoms.get_potential_energy()
 
-    calc2.reset()
     atoms.calc = calc2
     e2 = atoms.get_potential_energy()
     assert np.allclose(e1, e2, atol=1e-4, rtol=1e-4)
@@ -69,7 +68,6 @@ def _test_calc_energy(damping, xc, old, atoms, device="cpu", dtype=torch.float64
 
 
 def _assert_energy_force_stress_equal(calc1, calc2, atoms: Atoms, force_tol: float = 1e-5):
-    calc1.reset()
     atoms.calc = calc1
     f1 = atoms.get_forces()
     e1 = atoms.get_potential_energy()
@@ -77,7 +75,6 @@ def _assert_energy_force_stress_equal(calc1, calc2, atoms: Atoms, force_tol: flo
     if np.all(atoms.pbc == np.array([True, True, True])):
         s1 = atoms.get_stress()
 
-    calc2.reset()
     atoms.calc = calc2
     f2 = atoms.get_forces()
     e2 = atoms.get_potential_energy()
@@ -232,7 +229,7 @@ def test_calc_energy_force_stress_device_abc(
 ):
     """Test: check tri-partite calc with device, dtype dependency."""
     xc = "pbe"
-    if np.all(atoms.pbc) and bidirectional == False:
+    if np.all(atoms.pbc) and not bidirectional:
         # TODO: bidirectional=False is not implemented for pbc now.
         with pytest.raises(NotImplementedError):
             _test_calc_energy_force_stress(

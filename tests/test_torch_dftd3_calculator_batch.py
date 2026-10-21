@@ -1,6 +1,7 @@
 """
 DFTD3 program need to be installed to test this method.
 """
+
 from copy import deepcopy
 from typing import List
 
@@ -9,6 +10,7 @@ import pytest
 import torch
 from ase import Atoms
 from ase.build import bulk, fcc111, molecule
+
 from torch_dftd.testing.damping import damping_method_list
 from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
 
@@ -18,7 +20,7 @@ from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
         pytest.param("case1", id="mol+slab"),
         pytest.param("case2", id="mol+slab(wo_pbc)"),
         pytest.param("case3", id="null"),
-        pytest.param("case4", marks=[pytest.mark.slow], id="large"),
+        pytest.param("case4", id="large"),
     ]
 )
 def atoms_list(request) -> List[Atoms]:
@@ -136,7 +138,7 @@ def test_calc_energy_force_stress_device_batch_abc(
     """Test2-3: check device, dtype dependency. with only various damping method."""
     xc = "pbe"
     abc = True
-    if any([np.all(atoms.pbc) for atoms in atoms_list]) and bidirectional == False:
+    if any([np.all(atoms.pbc) for atoms in atoms_list]) and not bidirectional:
         # TODO: bidirectional=False is not implemented for pbc now.
         with pytest.raises(NotImplementedError):
             _test_calc_energy_force_stress(

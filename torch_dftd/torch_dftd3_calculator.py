@@ -5,6 +5,7 @@ from ase import Atoms
 from ase.calculators.calculator import Calculator, PropertyNotImplementedError, all_changes
 from ase.units import Bohr
 from torch import Tensor
+
 from torch_dftd.dftd3_xc_params import get_dftd3_default_params
 from torch_dftd.functions.edge_extraction import calc_edge_index
 from torch_dftd.nn.dftd2_module import DFTD2Module

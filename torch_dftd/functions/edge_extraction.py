@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from ase.neighborlist import primitive_neighbor_list
 from ase.units import Bohr
-from pymatgen.core import Structure, Lattice
+from pymatgen.core import Lattice, Structure
 from torch import Tensor
 
 

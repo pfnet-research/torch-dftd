@@ -9,7 +9,7 @@ install_requires: List[str] = [
     "pymatgen>=2022.7.8",
 ]
 extras_require: Dict[str, List[str]] = {
-    "develop": ["pysen[lint]==0.10.5", "ase==3.21.1"],
+    "develop": ["ruff", "pytest", "pytest-benchmark"],
 }
 
 

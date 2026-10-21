@@ -1,5 +1,4 @@
 import tempfile
-from typing import List
 
 import numpy as np
 import pytest
@@ -7,6 +6,7 @@ from ase import Atoms
 from ase.build import bulk, fcc111, molecule
 from ase.calculators.dftd3 import DFTD3
 from ase.units import Bohr
+
 from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
 
 
@@ -14,7 +14,7 @@ from torch_dftd.torch_dftd3_calculator import TorchDFTD3Calculator
     params=[
         pytest.param("mol", id="mol"),
         pytest.param("slab", id="slab"),
-        pytest.param("large", marks=[pytest.mark.slow], id="large"),
+        pytest.param("large", id="large"),
     ]
 )
 def atoms(request) -> Atoms:
@@ -30,20 +30,11 @@ def atoms(request) -> Atoms:
     return atoms_dict[request.param]
 
 
-def calc_energy(calculator, atoms):
-    calculator.reset()
-    atoms.calc = calculator
-    e1 = atoms.get_potential_energy()
-    return True
-
-
 def calc_force_stress(calculator, atoms):
-    calculator.reset()
     atoms.calc = calculator
-    f1 = atoms.get_forces()
+    atoms.get_forces()
     if np.all(atoms.pbc == np.array([True, True, True])):
-        s1 = atoms.get_stress()
-    return True
+        atoms.get_stress()
 
 
 def test_dftd3_calculator_benchmark(atoms, benchmark):
@@ -52,15 +43,14 @@ def test_dftd3_calculator_benchmark(atoms, benchmark):
     old = False
     cutoff = 95 * Bohr
     with tempfile.TemporaryDirectory() as tmpdirname:
-        dftd3_calc = DFTD3(
-            damping=damping, xc=xc, grad=True, old=old, cutoff=cutoff, directory=tmpdirname
-        )
-        benchmark.pedantic(
-            calc_force_stress,
-            kwargs=dict(calculator=dftd3_calc, atoms=atoms),
-            rounds=3,
-            iterations=5,
-        )
+
+        def setup():
+            dftd3_calc = DFTD3(
+                damping=damping, xc=xc, grad=True, old=old, cutoff=cutoff, directory=tmpdirname
+            )
+            return (), dict(calculator=dftd3_calc, atoms=atoms)
+
+        benchmark.pedantic(calc_force_stress, setup=setup, rounds=15)
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
@@ -78,11 +68,13 @@ def test_torch_dftd3_calculator_benchmark(atoms, device, benchmark):
         device=device,
     )
     # Dry run once
-    calc_force_stress(calculator=dftd3_calc, atoms=atoms),
+    calc_force_stress(calculator=dftd3_calc, atoms=atoms)
 
-    benchmark.pedantic(
-        calc_force_stress, kwargs=dict(calculator=dftd3_calc, atoms=atoms), rounds=3, iterations=5
-    )
+    def setup():
+        dftd3_calc.reset()
+        return (), dict(calculator=dftd3_calc, atoms=atoms)
+
+    benchmark.pedantic(calc_force_stress, setup=setup, rounds=15)
 
 
 if __name__ == "__main__":

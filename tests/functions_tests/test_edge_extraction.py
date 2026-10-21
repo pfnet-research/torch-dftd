@@ -1,18 +1,22 @@
 import pytest
 import torch
+
 from torch_dftd.functions.edge_extraction import calc_neighbor_by_ase, calc_neighbor_by_pymatgen
 
 
-@pytest.mark.parametrize("pbc", [
-    (True, True, True),
-    (True, True, False),
-    (True, False, True),
-    (False, True, True),
-    (False, False, True),
-    (False, True, False),
-    (True, False, False),
-    (False, False, False),
-])
+@pytest.mark.parametrize(
+    "pbc",
+    [
+        (True, True, True),
+        (True, True, False),
+        (True, False, True),
+        (False, True, True),
+        (False, False, True),
+        (False, True, False),
+        (True, False, False),
+        (False, False, False),
+    ],
+)
 def test_calc_neighbor_equivalent(pbc):
     torch.manual_seed(42)
     n_nodes = 5
@@ -26,9 +30,9 @@ def test_calc_neighbor_equivalent(pbc):
     edge_index2, S2 = calc_neighbor_by_pymatgen(pos, cell, pbc, cutoff)
 
     n_edges = edge_index1.shape[1]
-    assert (
-        edge_index1.shape == edge_index2.shape
-    ), f"{edge_index1.shape} != {edge_index2.shape}, edge shape does not match!"
+    assert edge_index1.shape == edge_index2.shape, (
+        f"{edge_index1.shape} != {edge_index2.shape}, edge shape does not match!"
+    )
     assert S1.shape == S2.shape, f"{S1.shape} != {S2.shape}, Shift tensor shape does not match!"
     edge_shift_list1 = []
     edge_shift_list2 = []
@@ -59,11 +63,13 @@ def test_calc_neighbor_equivalent(pbc):
 def test_not_all_periodic():
     pbc = torch.tensor([True, True, False])
     cell = torch.tensor([[2.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 10.0]])
-    positions = torch.tensor([
-        [0.0, 0.0, 0.0],
-        [1.9, 1.9, 0.0],
-        [0.0, 0.0, 9.9],
-    ])
+    positions = torch.tensor(
+        [
+            [0.0, 0.0, 0.0],
+            [1.9, 1.9, 0.0],
+            [0.0, 0.0, 9.9],
+        ]
+    )
     cutoff = torch.ones(1)
 
     edge_index, _ = calc_neighbor_by_ase(positions, cell, pbc, cutoff.item())
