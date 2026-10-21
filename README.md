@@ -12,6 +12,9 @@ pip install torch-dftd
 # Install from source (for developers)
 git clone https://github.com/pfnet-research/torch-dftd
 pip install -e .
+
+# Install GPU dependencies for the 3-body term (cupy, pytorch-pfn-extras)
+pip install -e ".[gpu]"
 ```
 
 ## Quick start

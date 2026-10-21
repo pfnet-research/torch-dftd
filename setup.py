@@ -10,6 +10,7 @@ install_requires: List[str] = [
 ]
 extras_require: Dict[str, List[str]] = {
     "develop": ["ruff", "pytest", "pytest-benchmark"],
+    "gpu": ["torch", "cupy-cuda12x>=12.2.0", "pytorch-pfn-extras>=0.7.3"],
 }
 
 
