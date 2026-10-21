@@ -71,13 +71,16 @@ def _assert_energy_force_stress_equal(calc1, calc2, atoms: Atoms, force_tol: flo
     atoms.calc = calc1
     f1 = atoms.get_forces()
     e1 = atoms.get_potential_energy()
+    e1_fc = atoms.get_potential_energy(force_consistent=True)
     if np.all(atoms.pbc == np.array([True, True, True])):
         s1 = atoms.get_stress()
 
     atoms.calc = calc2
     f2 = atoms.get_forces()
     e2 = atoms.get_potential_energy()
+    e2_fc = atoms.get_potential_energy(force_consistent=True)
     assert np.allclose(e1, e2, atol=1e-4, rtol=1e-4)
+    assert np.allclose(e1_fc, e2_fc, atol=1e-4, rtol=1e-4)
     assert np.allclose(f1, f2, atol=force_tol, rtol=force_tol)
     if np.all(atoms.pbc == np.array([True, True, True])):
         s2 = atoms.get_stress()

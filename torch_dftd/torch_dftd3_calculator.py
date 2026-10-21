@@ -2,7 +2,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 from ase import Atoms
-from ase.calculators.calculator import Calculator, PropertyNotImplementedError, all_changes
+from ase.calculators.calculator import Calculator, all_changes
 from ase.units import Bohr
 from torch import Tensor
 
@@ -33,7 +33,7 @@ class TorchDFTD3Calculator(Calculator):
     """
 
     name = "TorchDFTD3Calculator"
-    implemented_properties = ["energy", "forces", "stress"]
+    implemented_properties = ["energy", "free_energy", "forces", "stress"]
 
     def __init__(
         self,
@@ -124,14 +124,6 @@ class TorchDFTD3Calculator(Calculator):
             results = self.dftd_module.calc_energy(**input_dicts, damping=self.damping)[0]
         self.results["energy"] = results["energy"]
         self.results["free_energy"] = self.results["energy"]
-
-        # Referenced DFTD3 impl.
-        if self.dft is not None:
-            try:
-                efree = self.dft.get_potential_energy(force_consistent=True)
-                self.results["free_energy"] += efree
-            except PropertyNotImplementedError:
-                pass
 
         if "forces" in results:
             self.results["forces"] = results["forces"]
