@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: astral-sh/setup-uv@v10.3.0
       with:
         python-version: '3.12'
     - name: Install gfortran
@@ -35,8 +35,6 @@ jobs:
         cmake --build /tmp/dftd3-lib/build -j "$(nproc)"
         echo /tmp/dftd3-lib/build/prg >> "$GITHUB_PATH"
     - name: Install dependencies
-      run: |
-        pip install torch --index-url https://download.pytorch.org/whl/cpu
-        pip install -e .[develop]
+      run: uv sync --locked --extra cpu
     - name: Run pytest
-      run: pytest -k "not cuda" --benchmark-disable tests
+      run: uv run --no-sync pytest -k "not cuda" --benchmark-disable tests

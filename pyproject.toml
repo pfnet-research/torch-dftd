@@ -1,5 +1,61 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torch-dftd"
+dynamic = ["version"]
+description = "pytorch implementation of dftd2 & dftd3"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+dependencies = [
+    "ase>=3.23, <4.0.0",
+    "pymatgen>=2022.7.8",
+    "torch",
+]
+
+[project.optional-dependencies]
+cpu = ["torch"]
+gpu = ["torch", "cupy-cuda12x>=12.2.0", "pytorch-pfn-extras>=0.7.3"]
+
+[dependency-groups]
+dev = ["ruff", "pytest", "pytest-benchmark"]
+
+[project.urls]
+Repository = "https://github.com/pfnet-research/torch-dftd"
+
+[tool.setuptools.dynamic]
+version = { attr = "torch_dftd._version.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["torch_dftd*"]
+
+[tool.setuptools.package-data]
+torch_dftd = ["py.typed", "nn/params/dftd3_params.npz"]
+
 [tool.ruff]
 line-length = 99
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu126", extra = "gpu" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true

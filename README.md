@@ -9,9 +9,20 @@ pytorch implementation of dftd2 [1] & dftd3 [2, 3]
 # Install from pypi
 pip install torch-dftd
 
-# Install from source (for developers)
+# Install with GPU dependencies for the 3-body term (cupy, pytorch-pfn-extras)
+pip install "torch-dftd[gpu]"
+```
+
+### Install from source (for developers)
+
+[uv](https://docs.astral.sh/uv/) manages the development environment.
+Select the torch build with an extra: `cpu` installs the CPU wheel and `gpu` installs the CUDA 12.6 wheel
+together with the 3-body term dependencies.
+
+```bash
 git clone https://github.com/pfnet-research/torch-dftd
-pip install -e .
+cd torch-dftd
+uv sync --extra cpu  # or: uv sync --extra gpu
 ```
 
 ## Quick start
@@ -50,11 +61,11 @@ pytorch-pfn-extras==0.7.3
 You can simply run below to get your code formatted :)
 ```bash
 # Format the code
-$ ruff check --fix
-$ ruff format
+$ uv run ruff check --fix
+$ uv run ruff format
 # Check the code format
-$ ruff check
-$ ruff format --check
+$ uv run ruff check
+$ uv run ruff format --check
 ```
 
 ### CUDA Kernel function implementation with cupy
