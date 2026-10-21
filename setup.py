@@ -5,7 +5,7 @@ from setuptools import find_packages, setup  # NOQA
 
 setup_requires: List[str] = []
 install_requires: List[str] = [
-    "ase>=3.18, <4.0.0",  # Note that we require ase==3.21.1 for pytest.
+    "ase>=3.23, <4.0.0",
     "pymatgen>=2022.7.8",
 ]
 extras_require: Dict[str, List[str]] = {

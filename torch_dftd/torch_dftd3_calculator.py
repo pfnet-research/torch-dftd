@@ -124,14 +124,6 @@ class TorchDFTD3Calculator(Calculator):
         self.results["energy"] = results["energy"]
         self.results["free_energy"] = self.results["energy"]
 
-        # Referenced DFTD3 impl.
-        if self.dft is not None:
-            try:
-                efree = self.dft.get_potential_energy(force_consistent=True)
-                self.results["free_energy"] += efree
-            except PropertyNotImplementedError:
-                pass
-
         if "forces" in results:
             self.results["forces"] = results["forces"]
         if "stress" in results:
